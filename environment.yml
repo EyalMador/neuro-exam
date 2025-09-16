@@ -1,0 +1,17 @@
+name: neuro-move
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - numpy
+  - pandas
+  - matplotlib
+  - seaborn
+  - opencv
+  - jupyter
+  - ipykernel         # lets you use this env inside Jupyter
+  - pip
+  - pip:
+      - pyopenpose    # OpenPose Python bindings (if installed via pip)
+      - ffmpeg-python # wrapper to call ffmpeg from Python
