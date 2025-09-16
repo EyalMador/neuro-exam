@@ -2,14 +2,15 @@ venv/
 __pycache__/
 *.pyc
 
-data/
+# Ignore all files in data/
+data/*
+
+#keep subfolders
+!data/**/
+
+#keep placeholder files
+!data/**/.gitkeep
+
+# Ignore videos specifically
 *.mp4
 *.avi
-
-
-rm -rf .git
-git init
-git remote add origin https://github.com/EyalMador/neuro-exam.git
-git add .
-git commit -m "Clean start without large files"
-git push -u origin main --force
