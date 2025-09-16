@@ -13,4 +13,5 @@ data/*
 
 # Ignore videos specifically
 *.mp4
+*.mov
 *.avi
