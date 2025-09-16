@@ -15,3 +15,5 @@ data/*
 *.mp4
 *.mov
 *.avi
+*.json
+*.csv
