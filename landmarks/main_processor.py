@@ -14,7 +14,7 @@ def get_video(path):
     else:
         raise FileNotFoundError(f"Video not found at {path}")
     
-def save_json(video_coords, output_dir=".", output_name="landmarks.json"):
+def save_json(video_coords, output_dir=".", output_name="landmarks.jsonz"):
     """Save landmarks dictionary to JSON file."""
     filepath = os.path.join(output_dir, output_name)
     os.makedirs(output_dir, exist_ok=True)
