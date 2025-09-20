@@ -8,16 +8,23 @@ models = ["pose","hands"]
 def extract_traj(coords_dict, landmark_name):
     """
     Extract trajectory for a single landmark across frames.
+    Works with nested JSON that has 'pose', 'hands', etc.
 
     Parameters
     ----------
     coords_dict : dict
-        Landmark dictionary for a category ("pose" or "hands").
-        Example:
+        Root dictionary from JSON. Expected structure:
             {
-              "NOSE": {0: {"x":..,"y":..,"z":..,"v":..}, 1: {...}, ...},
-              "RIGHT_HAND.INDEX_FINGER_TIP": {0: {"x":..,"y":..,"z":..}, ...}
+              "pose": {
+                  "NOSE": {0: {"x":..,"y":..,"z":..,"v":..}, ...},
+                  ...
+              },
+              "hands": {
+                  "RIGHT_HAND.INDEX_FINGER_TIP": {0: {"x":..,"y":..,"z":..}, ...},
+                  ...
+              }
             }
+
     landmark_name : str
         Name of the landmark to extract (e.g., "NOSE" or "RIGHT_HAND.INDEX_FINGER_TIP").
 
@@ -25,19 +32,32 @@ def extract_traj(coords_dict, landmark_name):
     -------
     np.ndarray of shape (T, 3)
         Trajectory (x,y,z) sorted by frame.
+
+    Raises
+    ------
+    KeyError
+        If the landmark is not found in any section.
     """
-    if landmark_name not in coords_dict:
-        raise KeyError(f"Landmark '{landmark_name}' not found. Available: {list(coords_dict.keys())[:10]}...")
+    # Search through all top-level sections (pose, hands, etc.)
+    for section_name, section_dict in coords_dict.items():
+        if landmark_name in section_dict:
+            frames_dict = section_dict[landmark_name]
+            frame_keys = sorted(frames_dict.keys(), key=lambda k: int(k))
 
-    frames_dict = coords_dict[landmark_name]
-    frame_keys = sorted(frames_dict.keys(), key=lambda k: int(k))
+            traj = np.array([
+                [frames_dict[f]["x"], frames_dict[f]["y"], frames_dict[f]["z"]]
+                for f in frame_keys
+            ], dtype=float)
 
-    traj = np.array([
-        [frames_dict[f]["x"], frames_dict[f]["y"], frames_dict[f]["z"]]
-        for f in frame_keys
-    ], dtype=float)
+            return traj
 
-    return traj
+    # If not found in any section
+    raise KeyError(
+        f"Landmark '{landmark_name}' not found. "
+        f"Available sections: {list(coords_dict.keys())}. "
+        f"Examples from 'pose': {list(coords_dict.get('pose', {}).keys())[:5]} "
+        f"Examples from 'hands': {list(coords_dict.get('hands', {}).keys())[:5]}"
+    )
 
 
 
@@ -85,7 +105,7 @@ def compute_deviation(finger_traj, nose_point):
     
     Returns
     -------
-    deviation_mean, deviation_rms, path_ratio, start_idx
+    deviation_mean, deviation_rms, path_ratio
     """
     start_idx = detect_movement_start(finger_traj, nose_point)
     traj = finger_traj[start_idx:]
