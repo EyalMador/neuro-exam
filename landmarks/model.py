@@ -20,8 +20,9 @@ class Video:
         return cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
 # Available model types
-model_types = {
-    'pose': 'pose',
-    'hands': 'hands',
-    'face': 'face'
+model_map = {
+    'pose': ['pose'],
+    'hands': ['hands'],
+    'face': ['face'],
+    'hybrid': ['pose', 'hands']
 }

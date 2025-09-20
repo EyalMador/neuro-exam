@@ -1,6 +1,7 @@
 import cv2
 import os
 from media_pipe_wrapper import MPModel
+from model import model_map
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -90,10 +91,23 @@ def plot_xyz(video_coords, landmark, fps, show):
 
 def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video_name):
     if lib == 'mediapipe':
-        cap = get_video(source_video_path)
-        model = MPModel(m_type)
-        coords = model.processing(cap, save_video_output=True, output_video_dir=output_video_dir, output_video_name=output_video_name )
-        return coords
+        if m_type not in model_map:
+            raise ValueError("Unsupported model type")
+        else:
+            hybrid_coords = {}
+            for sub_type in model_map[m_type]:
+                cap = get_video(source_video_path)
+                model = MPModel(sub_type)
+                coords = model.processing(cap, save_video_output=True, output_video_dir=output_video_dir, output_video_name=f"{sub_type}_{output_video_name}")
+                hybrid_coords[sub_type] = coords
+            
+            if "hands" not in hybrid_coords:
+                hybrid_coords["hands"] = None
+            if "pose" not in hybrid_coords:
+                hybrid_coords["pose"] = None
+            
+            return hybrid_coords
+                               
     elif lib == 'openpose':
         raise NotImplementedError("OpenPose support not yet implemented")
     else:
@@ -101,7 +115,7 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
 
 if __name__ == "__main__":
     test_type = "FTNIDO2"
-    model_type = "hands"
+    model_type = "hybrid"
     video_num = 1
     source_video_path = f"../data/Raw_Videos/Video_{video_num}/{test_type}.mov"
     
@@ -120,6 +134,6 @@ if __name__ == "__main__":
     
     save_json(coords, output_json_path, output_json_name)
     save_csv(coords, output_csv_path, output_csv_name)
-    plot_xyz(coords, landmark="RIGHT_HAND.INDEX_FINGER_TIP", fps=30, show=True)
+    plot_xyz(coords['hands'],landmark="RIGHT_HAND.INDEX_FINGER_TIP", fps=30, show=True)
     print(f"Extracted {len(coords)} frames of landmarks")
     print(coords.keys())

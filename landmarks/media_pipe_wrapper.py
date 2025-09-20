@@ -1,7 +1,7 @@
 import os
 import cv2
 import mediapipe as mp
-from model import Frame, Video, model_types
+from model import Frame, Video
 
 
 class MPModel:
