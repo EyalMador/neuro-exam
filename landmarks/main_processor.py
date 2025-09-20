@@ -1,7 +1,6 @@
 import cv2
 import os
 from media_pipe_wrapper import MPModel
-from model import model_map
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -90,32 +89,65 @@ def plot_xyz(video_coords, landmark, fps, show):
 
 
 def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video_name):
+    
     if lib == 'mediapipe':
-        if m_type not in model_map:
-            raise ValueError("Unsupported model type")
+        # Pose only
+        if m_type == "pose":
+            cap = get_video(source_video_path)
+            model = MPModel("pose")
+            coords = model.processing(
+                cap, save_video_output=True,
+                output_video_dir=output_video_dir,
+                output_video_name=f"pose_{output_video_name}"
+            )
+            return {"pose": coords, "hands": {}}
+        
+        # Hands only
+        elif m_type == "hands":
+            cap = get_video(source_video_path)
+            model = MPModel("hands")
+            coords = model.processing(
+                cap, save_video_output=True,
+                output_video_dir=output_video_dir,
+                output_video_name=f"hands_{output_video_name}"
+            )
+            return {"pose": {}, "hands": coords}
+        
+        
+        # Holistic - pose + hands
+        elif m_type == "holistic":
+            cap = get_video(source_video_path)
+            model = MPModel("holistic")
+            coords = model.processing(
+                cap, save_video_output=True,
+                output_video_dir=output_video_dir,
+                output_video_name=f"holistic_{output_video_name}"
+            )
+
+            # Split holistic coords into pose and hands
+            pose_coords = {}
+            hands_coords = {}
+            for landmark, frames in coords.items():
+                if "HAND" in landmark:
+                    hands_coords[landmark] = frames
+                else:
+                    pose_coords[landmark] = frames
+
+            return {"pose": pose_coords, "hands": hands_coords}
+        
         else:
-            hybrid_coords = {}
-            for sub_type in model_map[m_type]:
-                cap = get_video(source_video_path)
-                model = MPModel(sub_type)
-                coords = model.processing(cap, save_video_output=True, output_video_dir=output_video_dir, output_video_name=f"{sub_type}_{output_video_name}")
-                hybrid_coords[sub_type] = coords
-            
-            if "hands" not in hybrid_coords:
-                hybrid_coords["hands"] = None
-            if "pose" not in hybrid_coords:
-                hybrid_coords["pose"] = None
-            
-            return hybrid_coords
-                               
+            raise ValueError("Unsupported model type (use: 'pose', 'hands', 'holistic')")
+        
+                        
     elif lib == 'openpose':
         raise NotImplementedError("OpenPose support not yet implemented")
+    
     else:
         raise ValueError("Unsupported library")
 
 if __name__ == "__main__":
     test_type = "FTNIDO2"
-    model_type = "hybrid"
+    model_type = "holistic"
     video_num = 1
     source_video_path = f"../data/Raw_Videos/Video_{video_num}/{test_type}.mov"
     

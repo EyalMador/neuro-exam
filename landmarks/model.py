@@ -18,11 +18,3 @@ class Video:
     def out_channel(self, output_path, fps, width, height):
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         return cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-
-# Available model types
-model_map = {
-    'pose': ['pose'],
-    'hands': ['hands'],
-    'face': ['face'],
-    'hybrid': ['pose', 'hands']
-}
