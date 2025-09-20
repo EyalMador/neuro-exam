@@ -39,7 +39,7 @@ def extract_traj(coords_dict, landmark_name):
         If the landmark is not found in any section.
     """
     # Search through all top-level sections (pose, hands, etc.)
-    for section_name, section_dict in coords_dict.items():
+    for _, section_dict in coords_dict.items():
         if landmark_name in section_dict:
             frames_dict = section_dict[landmark_name]
             frame_keys = sorted(frames_dict.keys(), key=lambda k: int(k))
@@ -61,40 +61,20 @@ def extract_traj(coords_dict, landmark_name):
 
 
 
-def detect_movement_start(finger_traj, nose_point, window=3, threshold=0.0):
-    """
-    Detect the start index of movement toward the nose.
-    
-    Parameters
-    ----------
-    finger_traj : np.ndarray (T,3)
-        Fingertip positions over time.
-    nose_point : np.ndarray (3,)
-        Nose coordinates (averaged across frames).
-    window : int
-        Number of frames for smoothing velocity.
-    threshold : float
-        Optional minimal negative velocity to declare movement start.
-    
-    Returns
-    -------
-    start_idx : int
-        Index of frame where movement toward nose begins.
-    """
-    # distance from finger to nose over time
+def detect_movement_start(finger_traj, nose_point, window=5, threshold=-0.002, sustain=5):
     dists = np.linalg.norm(finger_traj - nose_point, axis=1)
-
-    # velocity (difference of distances frame-to-frame)
     vel = np.diff(dists)
-
-    # smooth velocity with rolling mean
     smoothed = np.convolve(vel, np.ones(window)/window, mode="valid")
 
-    # detect first frame where smoothed velocity is consistently negative
+    count = 0
     for i, v in enumerate(smoothed):
-        if v < threshold:  # finger starts approaching nose
-            return i  # index in vel → corresponds to frame i
-    return 0  # fallback if no movement detected
+        if v < threshold:
+            count += 1
+            if count >= sustain:
+                return i
+        else:
+            count = 0
+    return 0
   
   
 #aims to calculate deviation between movement line and linear line nose-finger
