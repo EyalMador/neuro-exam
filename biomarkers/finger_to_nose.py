@@ -258,7 +258,7 @@ def consistency_score(scores):
     score = 1 - (sigma / max_sigma)
     return float(np.clip(score, 0, 1))
 
-def calculate_consistency(landmarks):
+def calculate_consistency_score(landmarks):
     accuracies = calculate_accuracy_list()
     smoothness = calculate_smoothness_list()
     accuracy_consistency = consistency_score(accuracies)
@@ -267,10 +267,11 @@ def calculate_consistency(landmarks):
     
 def extract_finger_to_nose_biomarkers(landmarks):
     biomarkers = {}
-    biomarkers["accuracy"] = calculate_accuracy(landmarks)
-    biomarkers["smoothness"] = calculate_smoothness(landmarks)
-    biomarkers["consistency"] = calculate_consistency(landmarks)
+    biomarkers["accuracy"] = calculate_accuracy_score(landmarks)
+    biomarkers["smoothness"] = calculate_smoothness_score(landmarks)
+    biomarkers["consistency"] = calculate_consistency_score(landmarks)
     return biomarkers
+
 
 
 
