@@ -232,12 +232,7 @@ def calculate_smoothness_list(data, fps=30,
         smoothness = 1.0 / (1.0 + msj)
         attempt_scores.append(smoothness)
 
-    # 5. Aggregate: overall = median of attempts
-    if len(attempt_scores) == 0:
-        return None, []
-
-    overall = float(np.median(attempt_scores))
-    return overall, attempt_scores
+    return attempt_scores
 
 def calculate_smoothness_score(landmarks):
     return np.mean(calculate_smoothness_list(landmarks)
@@ -271,6 +266,7 @@ def extract_finger_to_nose_biomarkers(landmarks):
     biomarkers["smoothness"] = calculate_smoothness_score(landmarks)
     biomarkers["consistency"] = calculate_consistency_score(landmarks)
     return biomarkers
+
 
 
 
