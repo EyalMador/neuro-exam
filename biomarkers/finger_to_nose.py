@@ -148,7 +148,7 @@ def deviation_biomarker(finger_traj, nose_traj):
   
 #--------------------------------------------------------------------------------------------------------------
 
-def calculate_accuracy(coords_dict, finger, nose):
+def calculate_accuracy_list(coords_dict, finger, nose):
   # find frame of local minimums in z values
   # for each minimum, extract distance between nose and tip of index finger
     # take into account distance from camera
@@ -174,12 +174,10 @@ def calculate_accuracy(coords_dict, finger, nose):
     minima_idx, _ = find_peaks(-norm_dist, distance=5)
     touch_distances = norm_dist[minima_idx]
 
-    # 4. summary biomarker
-    return {
-        "touch_distances": touch_distances.tolist(),
-        "mean_accuracy": float(np.mean(touch_distances)) if len(touch_distances) else None,
-        "median_accuracy": float(np.median(touch_distances)) if len(touch_distances) else None,
-    }
+    return touch_distances
+
+def calculate_accuracy_score(coords_dict, finger, nose):
+    return np.mean(calculate_accuracy_list(coords_dict, finger, nose))
 
 #TODO: extract traj calculations
 def calculate_smoothness(data, fps=30,
@@ -241,15 +239,36 @@ def calculate_smoothness(data, fps=30,
     overall = float(np.median(attempt_scores))
     return overall, attempt_scores
 
-def calculate_consistency(landmarks):
-  pass
+def consistency_score(scores):
+    scores = np.array(scores, dtype=float)
+    if len(scores) == 0:
+        return 0.0
+    
+    mu = scores.mean()
+    sigma = scores.std()
 
+    # max possible std for bounded [0,1] given mean mu
+    max_sigma = np.sqrt(mu * (1 - mu))
+    if max_sigma == 0:
+        return 1.0  # all identical
+    
+    score = 1 - (sigma / max_sigma)
+    return float(np.clip(score, 0, 1))
+
+def calculate_consistency(landmarks):
+    accuracies = calculate_accuracy_list()
+    smoothness = calculate_smoothness_list()
+    accuracy_consistency = consistency_score(accuracies)
+    smoothness_consistency = consistency_score(smoothness)
+    return (accuracy_consistency + smoothness_consistency) / 2
+    
 def extract_finger_to_nose_biomarkers(landmarks):
-  biomarkers = {}
-  biomarkers["accuracy"] = calculate_accuracy(landmarks)
-  biomarkers["smoothness"] = calculate_smoothness(landmarks)
-  biomarkers["consistency"] = calculate_consistency(landmarks)
-  return biomarkers
+    biomarkers = {}
+    biomarkers["accuracy"] = calculate_accuracy(landmarks)
+    biomarkers["smoothness"] = calculate_smoothness(landmarks)
+    biomarkers["consistency"] = calculate_consistency(landmarks)
+    return biomarkers
+
 
 
 
