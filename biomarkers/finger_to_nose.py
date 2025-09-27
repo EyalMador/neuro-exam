@@ -3,7 +3,49 @@ from scipy.signal import find_peaks
 
 models = ["pose","hands"]
 
-#TODO: --------------------check this functions ------------------
+def detect_movement_starts(finger_traj, nose_point, window=5, threshold=-0.002, sustain=5, cooldown=20):
+    """
+    Detect multiple start points of finger-to-nose movements.
+    
+    Parameters
+    ----------
+    finger_traj : np.ndarray (T,3)
+    nose_point : np.ndarray (3,)
+    window : int
+        Moving average window for velocity smoothing.
+    threshold : float
+        Velocity threshold (negative = moving closer).
+    sustain : int
+        Number of consecutive frames velocity must stay below threshold.
+    cooldown : int
+        Frames to skip after a detection to avoid duplicate starts.
+    
+    Returns
+    -------
+    starts : list of int
+        Frame indices of detected movement starts.
+    """
+    dists = np.linalg.norm(finger_traj - nose_point, axis=1)
+    vel = np.diff(dists)
+    smoothed = np.convolve(vel, np.ones(window)/window, mode="valid")
+
+    starts = []
+    count = 0
+    i = 0
+    while i < len(smoothed):
+        if smoothed[i] < threshold:
+            count += 1
+            if count >= sustain:
+                starts.append(i)
+                i += cooldown
+                count = 0
+                continue
+        else:
+            count = 0
+        i += 1
+    return starts
+  
+
 
 def extract_traj(coords_dict, landmark_name):
     """
@@ -61,22 +103,8 @@ def extract_traj(coords_dict, landmark_name):
 
 
 
-def detect_movement_start(finger_traj, nose_point, window=5, threshold=-0.002, sustain=5):
-    dists = np.linalg.norm(finger_traj - nose_point, axis=1)
-    vel = np.diff(dists)
-    smoothed = np.convolve(vel, np.ones(window)/window, mode="valid")
 
-    count = 0
-    for i, v in enumerate(smoothed):
-        if v < threshold:
-            count += 1
-            if count >= sustain:
-                return i
-        else:
-            count = 0
-    return 0
-  
-  
+#-------------------------------------------------------------------------------
 #aims to calculate deviation between movement line and linear line nose-finger
 def compute_deviation(finger_traj, nose_point):
     """
@@ -118,15 +146,40 @@ def deviation_biomarker(finger_traj, nose_traj):
         "path_ratio": path_ratio
     }
   
+#--------------------------------------------------------------------------------------------------------------
 
-#-----------------------------------------------------------------------------
-
-def calculate_accuracy(landmarks):
+def calculate_accuracy(coords_dict, finger, nose):
   # find frame of local minimums in z values
   # for each minimum, extract distance between nose and tip of index finger
     # take into account distance from camera
   # calculate overall biomarker for distance
-  pass
+    
+    # 1. extract trajectories
+    nose_traj = extract_traj(coords_dict, nose)
+    finger_traj = extract_traj(coords_dict, finger)
+
+    # align frames (assuming extract_traj sorts them already)
+    dist = np.linalg.norm(nose_traj - finger_traj, axis=1)
+
+    # 2. normalize by head width if ears available
+    if "LEFT_EAR" in coords_dict and "RIGHT_EAR" in coords_dict:
+        le = extract_traj(coords_dict, "LEFT_EAR")
+        re = extract_traj(coords_dict, "RIGHT_EAR")
+        head_width = np.linalg.norm(le - re, axis=1)
+        norm_dist = dist / head_width
+    else:
+        norm_dist = dist
+
+    # 3. detect touch attempts (minima in distance)
+    minima_idx, _ = find_peaks(-norm_dist, distance=5)
+    touch_distances = norm_dist[minima_idx]
+
+    # 4. summary biomarker
+    return {
+        "touch_distances": touch_distances.tolist(),
+        "mean_accuracy": float(np.mean(touch_distances)) if len(touch_distances) else None,
+        "median_accuracy": float(np.median(touch_distances)) if len(touch_distances) else None,
+    }
 
 #TODO: extract traj calculations
 def calculate_smoothness(data, fps=30,
