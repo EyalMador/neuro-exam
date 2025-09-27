@@ -232,6 +232,7 @@ def calculate_smoothness_list(data, fps=30,
         smoothness = 1.0 / (1.0 + msj)
         attempt_scores.append(smoothness)
 
+    print(f"Smoothness scores: {attempt_scores}")
     return attempt_scores
 
 def calculate_smoothness_score(landmarks):
@@ -266,6 +267,7 @@ def extract_finger_to_nose_biomarkers(landmarks):
     biomarkers["smoothness"] = calculate_smoothness_score(landmarks)
     biomarkers["consistency"] = calculate_consistency_score(landmarks)
     return biomarkers
+
 
 
 
