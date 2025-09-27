@@ -180,7 +180,7 @@ def calculate_accuracy_score(coords_dict, finger, nose):
     return np.mean(calculate_accuracy_list(coords_dict, finger, nose))
 
 #TODO: extract traj calculations
-def calculate_smoothness(data, fps=30,
+def calculate_smoothness_list(data, fps=30,
                               finger_key=("hands", "index_finger_tip"),
                               nose_key=("pose", "nose")):
     """
@@ -239,6 +239,9 @@ def calculate_smoothness(data, fps=30,
     overall = float(np.median(attempt_scores))
     return overall, attempt_scores
 
+def calculate_smoothness_score(landmarks):
+    return np.mean(calculate_smoothness_list(landmarks)
+                   
 def consistency_score(scores):
     scores = np.array(scores, dtype=float)
     if len(scores) == 0:
@@ -268,6 +271,7 @@ def extract_finger_to_nose_biomarkers(landmarks):
     biomarkers["smoothness"] = calculate_smoothness(landmarks)
     biomarkers["consistency"] = calculate_consistency(landmarks)
     return biomarkers
+
 
 
 
