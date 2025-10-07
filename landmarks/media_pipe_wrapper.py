@@ -5,7 +5,7 @@ from model import Frame, Video
 
 
 class MPModel:
-    def __init__(self, model_type, complexity=1, d_confidence=0.5, t_confidence=0.5, save=False):
+    def __init__(self, model_type, complexity=2, d_confidence=0.8, t_confidence=0.8, save=False):
         self.video = Video()
         self.mp_type = model_type
         self.drawing = mp.solutions.drawing_utils

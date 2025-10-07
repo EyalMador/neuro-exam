@@ -146,26 +146,40 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
         raise ValueError("Unsupported library")
 
 if __name__ == "__main__":
-    test_type = "FTNIDO2"
-    model_type = "holistic"
-    video_num = 1
-    source_video_path = f"../data/Raw_Videos/Video_{video_num}/{test_type}.mov"
-    
-    output_video_path = f"../data/output/Video_{video_num}/Video_output"
-    output_video_name = f"Video_{video_num}_out_{test_type}.mp4"
-    
-    output_json_path = f"../data/output/Video_{video_num}/Landmarks_output"
-    output_json_name = f"Video_{video_num}_out_{test_type}.json"
-    
-    output_csv_path = f"../data/output/Video_{video_num}/Landmarks_output"
-    output_csv_name = f"Video_{video_num}_out_{test_type}.csv"
-    
+    model_type = "pose"
 
-    
-    coords = get_landmarks('mediapipe', model_type, source_video_path, output_video_path, output_video_name)
-    
-    save_json(coords, output_json_path, output_json_name)
-    save_csv(coords, output_csv_path, output_csv_name)
-    plot_xyz(coords['hands'],landmark="RIGHT_HAND.INDEX_FINGER_TIP", fps=30, show=True)
-    print(f"Extracted {len(coords)} frames of landmarks")
-    print(coords.keys())
+    # All 4 test videos are inside Video_1 folder
+    test_videos = [
+        #"SAW_Ido",
+        "SAW"
+        #"FTN_far_3_valid",
+        #"FTN_close_3_valid",
+        #"FTN_1_valid",
+        #"FTN_2_invalid_1_valid",
+        #"FTN_3_valid",
+        #"FTN_3_invalid",
+    ]
+
+    for test_type in test_videos:
+        source_video_path = f"../data/Raw_Videos/Video_1/{test_type}.mp4"
+
+        # Output dirs
+        output_video_path = "../data/output/Video_1/Video_output"
+        output_video_name = f"Video_1_out_{test_type}.mp4"
+
+        output_json_path = "../data/output/Video_1/Landmarks_output"
+        output_json_name = f"Video_1_out_{test_type}.json"
+
+        output_csv_path = "../data/output/Video_1/Landmarks_output"
+        output_csv_name = f"Video_1_out_{test_type}.csv"
+
+        print(f"\n--- Processing {test_type} ---")
+
+        # Run Mediapipe
+        coords = get_landmarks('mediapipe', model_type, source_video_path, output_video_path, output_video_name)
+
+        # Save landmarks
+        save_json(coords, output_json_path, output_json_name)
+        save_csv(coords, output_csv_path, output_csv_name)
+
+        print(f"Finished {test_type}")
