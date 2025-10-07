@@ -5,12 +5,13 @@ from model import Frame, Video
 
 
 class MPModel:
-    def __init__(self, model_type, complexity=2, d_confidence=0.8, t_confidence=0.8, save=False):
+    def __init__(self, model_type, complexity=2, d_confidence=0.8, t_confidence=0.8, use_world_landmarks=False, save=False):
         self.video = Video()
         self.mp_type = model_type
         self.drawing = mp.solutions.drawing_utils
         self.style = mp.solutions.drawing_styles
         self.model = None
+        self.use_world_landmarks = use_world_landmarks
 
         if model_type == 'pose':
             self.model = mp.solutions.pose.Pose(
@@ -117,7 +118,7 @@ class MPModel:
                 "z": lm.z,
             }
     
-    def update_coords(self, result, frame_num):
+    def _update_coords(self, result, frame_num):
         """Update self.video.coords with landmarks depending on model type."""
 
         # Pose model only
@@ -136,6 +137,41 @@ class MPModel:
                 self._update_single_hand(result.left_hand_landmarks, "LEFT_HAND", frame_num)
             if result.right_hand_landmarks:
                 self._update_single_hand(result.right_hand_landmarks, "RIGHT_HAND", frame_num)
+    
+    
+    def update_coords(self, result, frame_num):
+        """Update self.video.coords with landmarks depending on model type."""
+        
+        # ---- Pose model only ----
+        if self.mp_type == "pose":
+            # Use world landmarks if flag is set and available
+            if getattr(self, "use_world_landmarks", False) and result.pose_world_landmarks:
+                pose_landmarks = result.pose_world_landmarks
+            else:
+                pose_landmarks = result.pose_landmarks
+
+            if pose_landmarks:
+                self._update_pose(pose_landmarks, frame_num)
+
+        # ---- Hands model only ----
+        elif self.mp_type == "hands" and result.multi_hand_landmarks:
+            self._update_hands(result.multi_hand_landmarks, result.multi_handedness, frame_num)
+
+        # ---- Holistic model ----
+        elif self.mp_type == "holistic":
+            # Same logic for pose part
+            if getattr(self, "use_world_landmarks", False) and result.pose_world_landmarks:
+                pose_landmarks = result.pose_world_landmarks
+            else:
+                pose_landmarks = result.pose_landmarks
+
+            if pose_landmarks:
+                self._update_pose(pose_landmarks, frame_num)
+            if result.left_hand_landmarks:
+                self._update_single_hand(result.left_hand_landmarks, "LEFT_HAND", frame_num)
+            if result.right_hand_landmarks:
+                self._update_single_hand(result.right_hand_landmarks, "RIGHT_HAND", frame_num)
+
                 
     """
     def update_coords(self, result, frame_num):
