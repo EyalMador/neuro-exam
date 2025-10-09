@@ -94,7 +94,7 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
         # Pose only
         if m_type == "pose":
             cap = get_video(source_video_path)
-            model = MPModel("pose")
+            model = MPModel("pose", use_world_landmarks=True)
             coords = model.processing(
                 cap, save_video_output=True,
                 output_video_dir=output_video_dir,
@@ -105,7 +105,7 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
         # Hands only
         elif m_type == "hands":
             cap = get_video(source_video_path)
-            model = MPModel("hands")
+            model = MPModel("hands", use_world_landmarks=True)
             coords = model.processing(
                 cap, save_video_output=True,
                 output_video_dir=output_video_dir,
@@ -117,7 +117,7 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
         # Holistic - pose + hands
         elif m_type == "holistic":
             cap = get_video(source_video_path)
-            model = MPModel("holistic")
+            model = MPModel("holistic", use_world_landmarks=True)
             coords = model.processing(
                 cap, save_video_output=True,
                 output_video_dir=output_video_dir,
