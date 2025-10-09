@@ -236,7 +236,7 @@ def calculate_smoothness_list(data, fps=30,
     return attempt_scores
 
 def calculate_smoothness_score(landmarks):
-    return np.mean(calculate_smoothness_list(landmarks)
+    return np.mean(calculate_smoothness_list(landmarks))
                    
 def consistency_score(scores):
     scores = np.array(scores, dtype=float)
@@ -267,10 +267,6 @@ def extract_finger_to_nose_biomarkers(landmarks):
     biomarkers["smoothness"] = calculate_smoothness_score(landmarks)
     biomarkers["consistency"] = calculate_consistency_score(landmarks)
     return biomarkers
-
-
-
-
 
 
 
