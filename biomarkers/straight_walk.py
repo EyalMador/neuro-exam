@@ -1,30 +1,29 @@
 import numpy as np
-
     
 def is_foot_flat(heel, toe, threshold = 0.02):
     return abs(heel['y'] - toe['y']) < threshold
 
-def detect_steps(coords):
-    frames = sorted([int(f) for f in coords['pose']['LEFT_HEEL'].keys()])
+def detect_steps(left_heel, left_toe, right_heel, right_toe):
+    frames = sorted([int(f) for f in left_heel.keys()])
     
     steps = {
         'left': [],
         'right': []
     }
     
-    for foot, heel, toe in [('left', 'LEFT_HEEL', 'LEFT_TOE'), 
-                                      ('right', 'RIGHT_HEEL', 'RIGHT_TOE')]:
+    for foot, heel, toe in [('left', left_heel, left_toe), 
+                                      ('right', right_heel, right_toe)]:
         in_step = False
         step_start = None
         
         for _, frame in enumerate(frames):
             frame_str = str(frame)
             
-            if frame_str not in coords['pose'][heel] or frame_str not in coords['pose'][toe]:
+            if frame_str not in heel or frame_str not in toe:
                 continue
                 
-            heel_coords = coords['pose'][heel][frame_str]
-            toe_coords = coords['pose'][toe][frame_str]
+            heel_coords = heel[frame_str]
+            toe_coords = toe[frame_str]
             
             foot_is_flat = is_foot_flat(heel_coords, toe_coords, flatness_threshold = 0.02)
             
@@ -43,8 +42,7 @@ def detect_steps(coords):
     return steps
 
 
-def stride_lengths(coords, steps, foot):
-    heel = 'LEFT_HEEL' if foot == 'left' else 'RIGHT_HEEL'
+def stride_lengths(heel, steps, foot):
     stride_lengths = []
     
     foot_steps = steps[foot]
@@ -55,9 +53,9 @@ def stride_lengths(coords, steps, foot):
         frame1 = str(foot_steps[i][0])
         frame2 = str(foot_steps[i + 1][0])
         
-        if frame1 in coords['pose'][heel] and frame2 in coords['pose'][heel]:
-            heel1 = coords['pose'][heel][frame1]
-            heel2 = coords['pose'][heel][frame2]
+        if frame1 in heel and frame2 in heel:
+            heel1 = heel[frame1]
+            heel2 = heel[frame2]
             
             h1 = [heel1['x'], 0, heel1['z']]
             h2 = [heel2['x'], 0, heel2['z']]
@@ -84,17 +82,16 @@ def step_times(steps, fps):
     return step_times
 
 
-def step_statistics(video):
-    coords = video.coords
-    steps = detect_steps(coords)
+def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
+    steps = detect_steps(left_heel, left_toe, right_heel, right_toe)
     
     #stride lengths
-    left_strides = stride_lengths(coords, steps, 'left')
-    right_strides = stride_lengths(coords, steps, 'right')
+    left_strides = stride_lengths(left_heel, steps, 'left')
+    right_strides = stride_lengths(right_heel, steps, 'right')
     strides = left_strides + right_strides
     
     # step times
-    step_times_data = step_times(steps, video.fps)
+    step_times_data = step_times(steps, fps)
     step_times = step_times_data['all']
     
     #empty cases
@@ -131,10 +128,8 @@ def step_statistics(video):
 
 
 
-def knee_angles(video):
-
-    coords = video.coords
-    frames = sorted([int(f) for f in video.coords['pose']['LEFT_KNEE'].keys()])
+def knee_angles(left_knee, left_hip, left_ankle, right_knee, right_heep, right_ankle):
+    frames = sorted([int(f) for f in left_knee.keys()])
     
     knee_angles = {
         'left': [],
@@ -143,20 +138,20 @@ def knee_angles(video):
     }
     
     for side, hip, knee, ankle in [
-        ('left', 'LEFT_HIP', 'LEFT_KNEE', 'LEFT_ANKLE'),
-        ('right', 'RIGHT_HIP', 'RIGHT_KNEE', 'RIGHT_ANKLE')
+        ('left', left_hip, left_knee, left_ankle),
+        ('right', right_heep, right_knee, right_ankle)
     ]:
         for frame in frames:
             frame_str = str(frame)
             
             # Check if all required landmarks exist in this frame
-            if (frame_str in coords['pose'][hip] and 
-                frame_str in coords['pose'][knee] and 
-                frame_str in coords['pose'][ankle]):
+            if (frame_str in hip and 
+                frame_str in knee and 
+                frame_str in ankle):
                 
-                hip_coords = coords['pose'][hip][frame_str]
-                knee_coords = coords['pose'][knee][frame_str]
-                ankle_coords = coords['pose'][ankle][frame_str]
+                hip_coords = hip[frame_str]
+                knee_coords = knee[frame_str]
+                ankle_coords = ankle[frame_str]
                 
                 v1 = np.array([hip_coords['x'] - knee_coords['x'], 
                               hip_coords['y'] - knee_coords['y'], 
@@ -177,9 +172,9 @@ def knee_angles(video):
     return knee_angles
 
 
-def knee_angles_statistics(video):
+def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_heep, right_ankle):
 
-    knee_angles = knee_angles(video)
+    knee_angles = knee_angles(left_knee, left_hip, left_ankle, right_knee, right_heep, right_ankle)
     
     all_angles = knee_angles['all']
     
