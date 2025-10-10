@@ -1,10 +1,12 @@
 import cv2
 import os
-from media_pipe_wrapper import MPModel
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+
+from .media_pipe_wrapper import MPModel
+from .rtm_wrapper import RTMModel
 
 
 def get_video(path):
@@ -94,7 +96,7 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
         # Pose only
         if m_type == "pose":
             cap = get_video(source_video_path)
-            model = MPModel("pose", use_world_landmarks=True)
+            model = MPModel("pose", complexity=2, t_confidence=0.5, d_confidence=0.5, use_world_landmarks=True)
             coords = model.processing(
                 cap, save_video_output=True,
                 output_video_dir=output_video_dir,
@@ -105,7 +107,7 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
         # Hands only
         elif m_type == "hands":
             cap = get_video(source_video_path)
-            model = MPModel("hands", use_world_landmarks=True)
+            model = MPModel("hands", t_confidence=0.4, d_confidence=0.4, use_world_landmarks=True)
             coords = model.processing(
                 cap, save_video_output=True,
                 output_video_dir=output_video_dir,
@@ -142,16 +144,33 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
     elif lib == 'openpose':
         raise NotImplementedError("OpenPose support not yet implemented")
     
+    
+    elif lib == 'rtmlib':
+        if m_type != "body26":
+            raise ValueError("RTMLib only supports model_type='body26' for now.")
+
+        cap = get_video(source_video_path)
+        model = RTMModel(model_type="body26", device="cpu", backend="onnxruntime")
+        coords = model.processing(
+            cap,
+            save_video_output=True,
+            output_video_dir=output_video_dir,
+            output_video_name=f"rtm_{output_video_name}"
+        )
+        return {"pose": coords, "hands": {}}
+    
+    
     else:
         raise ValueError("Unsupported library")
 
 if __name__ == "__main__":
-    model_type = "pose"
+    lib="rtmlib"
+    model_type = "body26"
 
     # All 4 test videos are inside Video_1 folder
     test_videos = [
         #"SAW_Ido",
-        "SAW"
+        "SAW_Shir_90"
         #"FTN_far_3_valid",
         #"FTN_close_3_valid",
         #"FTN_1_valid",
@@ -176,7 +195,7 @@ if __name__ == "__main__":
         print(f"\n--- Processing {test_type} ---")
 
         # Run Mediapipe
-        coords = get_landmarks('mediapipe', model_type, source_video_path, output_video_path, output_video_name)
+        coords = get_landmarks(lib, model_type, source_video_path, output_video_path, output_video_name)
 
         # Save landmarks
         save_json(coords, output_json_path, output_json_name)
