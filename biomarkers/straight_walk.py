@@ -1,15 +1,15 @@
 import numpy as np
-#-------------------------------------
-#           gait functions
-#-------------------------------------
-
+    
 def is_foot_flat(heel, toe, threshold = 0.02):
     return abs(heel['y'] - toe['y']) < threshold
 
 def detect_steps(left_heel, left_toe, right_heel, right_toe):
     frames = sorted([int(f) for f in left_heel.keys()])
     
-    steps = { 'left': [], 'right': [] }
+    steps = {
+        'left': [],
+        'right': []
+    }
     
     for foot, heel, toe in [('left', left_heel, left_toe), 
                                       ('right', right_heel, right_toe)]:
@@ -67,20 +67,65 @@ def stride_lengths(heel, steps, foot):
 
 
 def step_times(steps, fps):
-    times = []
+    step_times = {
+        'left': [],
+        'right': [],
+        'all': []
+    }
+    
     for foot in ['left', 'right']:
-        for start, end in steps[foot]:
-            times.append((end - start) / fps)
-    return times
+        for start_frame, end_frame in steps[foot]:
+            step_duration = (end_frame - start_frame) / fps
+            step_times[foot].append(step_duration)
+            step_times['all'].append(step_duration)
+    
+    return step_times
 
 
-def step_width(left_heel, right_heel):
-    widths = []
-    common_frames = sorted(set(left_heel.keys()) & set(right_heel.keys()), key=int)
-    for f in common_frames:
-        lh, rh = left_heel[f], right_heel[f]
-        widths.append(abs(lh['x'] - rh['x']))
-    return widths
+def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
+    steps = detect_steps(left_heel, left_toe, right_heel, right_toe)
+    
+    #stride lengths
+    left_strides = stride_lengths(left_heel, steps, 'left')
+    right_strides = stride_lengths(right_heel, steps, 'right')
+    strides = left_strides + right_strides
+    
+    # step times
+    step_times_data = step_times(steps, fps)
+    step_times = step_times_data['all']
+    
+    #empty cases
+    if not strides or not step_times:
+        return {
+            'error': 'No steps detected',
+            'step_size': {},
+            'step_time': {}
+        }
+    
+    return {
+        'step_size': {
+            'mean': float(np.mean(strides)),
+            'median': float(np.median(strides)),
+            'min': float(np.min(strides)),
+            'max': float(np.max(strides)),
+            'std': float(np.std(strides)),
+            'count': len(strides),
+            'all': strides
+        },
+        'step_time': {
+            'mean': float(np.mean(step_times)),
+            'median': float(np.median(step_times)),
+            'min': float(np.min(step_times)),
+            'max': float(np.max(step_times)),
+            'std': float(np.std(step_times)),
+            'count': len(step_times),
+            'all': step_times
+        }
+    }
+
+
+
+
 
 
 def knee_angles(left_knee, left_hip, left_ankle, right_knee, right_heep, right_ankle):
@@ -127,7 +172,6 @@ def knee_angles(left_knee, left_hip, left_ankle, right_knee, right_heep, right_a
     return knee_angles
 
 
-
 def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_heep, right_ankle):
 
     knee_angles = knee_angles(left_knee, left_hip, left_ankle, right_knee, right_heep, right_ankle)
@@ -164,49 +208,6 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_he
             'std': float(np.std(all_angles)),
             'count': len(all_angles),
             'all': all_angles
-        }
-    }
-    
-    
-    
-def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
-    steps = detect_steps(left_heel, left_toe, right_heel, right_toe)
-    
-    #stride lengths
-    left_strides = stride_lengths(left_heel, steps, 'left')
-    right_strides = stride_lengths(right_heel, steps, 'right')
-    strides = left_strides + right_strides
-    
-    # step times
-    step_times_data = step_times(steps, fps)
-    step_times = step_times_data['all']
-    
-    #empty cases
-    if not strides or not step_times:
-        return {
-            'error': 'No steps detected',
-            'step_size': {},
-            'step_time': {}
-        }
-    
-    return {
-        'step_size': {
-            'mean': float(np.mean(strides)),
-            'median': float(np.median(strides)),
-            'min': float(np.min(strides)),
-            'max': float(np.max(strides)),
-            'std': float(np.std(strides)),
-            'count': len(strides),
-            'all': strides
-        },
-        'step_time': {
-            'mean': float(np.mean(step_times)),
-            'median': float(np.median(step_times)),
-            'min': float(np.min(step_times)),
-            'max': float(np.max(step_times)),
-            'std': float(np.std(step_times)),
-            'count': len(step_times),
-            'all': step_times
         }
     }
 
