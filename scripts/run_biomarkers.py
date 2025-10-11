@@ -1,15 +1,16 @@
-import os
-import json
-import csv
+import inspect
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
+import os, json
+from pprint import pformat
+import matplotlib.pyplot as plt
 
-# --- Import your biomarker functions ---
-from biomarkers.finger_to_nose import extract_finger_to_nose_biomarkers
+# --- Example imports ---
+# from biomarkers.finger_to_nose import extract_finger_to_nose_biomarkers
 from biomarkers.straight_walk import extract_straight_walk_biomarkers
 
 BIOMARKERS = {
-    "Finger to Nose": extract_finger_to_nose_biomarkers,
+    # "Finger to Nose": extract_finger_to_nose_biomarkers,
     "Straight Walk": extract_straight_walk_biomarkers,
 }
 
@@ -17,18 +18,14 @@ BIOMARKERS = {
 def run_biomarkers_gui():
     root = tk.Tk()
     root.title("Run Biomarker Extraction")
-    root.geometry("480x400")
+    root.geometry("600x650")
     root.configure(bg="white")
 
-    # ---- Variables ----
     json_path_var = tk.StringVar()
     biomarker_var = tk.StringVar(value=list(BIOMARKERS.keys())[0])
-    output_file_var = tk.StringVar()
+    param_entries = {}
 
-    export_json_var = tk.BooleanVar(value=True)
-    export_csv_var = tk.BooleanVar(value=True)
-
-    # ---- Helper functions ----
+    # --- Functions ---
     def choose_json():
         path = filedialog.askopenfilename(
             title="Select Landmarks JSON File",
@@ -37,98 +34,129 @@ def run_biomarkers_gui():
         if path:
             json_path_var.set(path)
 
-    def choose_output_file():
-        file_path = filedialog.asksaveasfilename(
-            title="Save Biomarker Output As",
-            defaultextension=".json",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-        )
-        if file_path:
-            output_file_var.set(file_path)
+    def visualize_results(results):
+        """If results contain numeric lists, plot them."""
+        numeric_dict = {k: v for k, v in results.items() if isinstance(v, (list, tuple))}
+        if not numeric_dict:
+            return
+        plt.figure(figsize=(6, 4))
+        for key, values in numeric_dict.items():
+            try:
+                plt.plot(values, label=key)
+            except Exception:
+                pass
+        plt.title("Biomarker Visualization")
+        plt.legend()
+        plt.tight_layout()
+        plt.show(block=False)
 
-    def save_results(results, base_path):
-        """Save results as JSON and/or CSV."""
-        base_dir = os.path.dirname(base_path)
-        base_name = os.path.splitext(os.path.basename(base_path))[0]
+    def update_param_fields(*_):
+        """Show input fields for detected parameters (except coords/landmarks)."""
+        for widget in params_frame.winfo_children():
+            widget.destroy()
+        param_entries.clear()
 
-        if export_json_var.get():
-            json_out = os.path.join(base_dir, f"{base_name}.json")
-            with open(json_out, "w") as f:
-                json.dump(results, f, indent=2)
-            print(f"Saved JSON: {json_out}")
+        func = BIOMARKERS[biomarker_var.get()]
+        sig = inspect.signature(func)
 
-        if export_csv_var.get():
-            csv_out = os.path.join(base_dir, f"{base_name}.csv")
-            if isinstance(results, dict):
-                with open(csv_out, "w", newline="") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(["metric", "value"])
-                    for k, v in results.items():
-                        writer.writerow([k, v])
-                print(f"Saved CSV: {csv_out}")
-            else:
-                print("Cannot save CSV — results not a dictionary.")
+        tk.Label(params_frame, text="Optional Parameters:", bg="white",
+                 font=("Helvetica", 10, "bold")).pack(pady=5)
+
+        for name, param in sig.parameters.items():
+            # skip the "coords" or "landmarks" param
+            if name.lower() in ["coords", "landmarks"]:
+                continue
+
+            label_text = f"{name}"
+            if param.default is not inspect._empty:
+                label_text += f" (default: {param.default})"
+
+            tk.Label(params_frame, text=label_text, bg="white", font=("Helvetica", 9)).pack()
+            entry = tk.Entry(params_frame, width=30, relief="solid", borderwidth=1)
+            entry.pack(pady=3)
+
+            # prefill default if available
+            if param.default is not inspect._empty:
+                entry.insert(0, str(param.default))
+            param_entries[name] = entry
 
     def run_biomarker():
         json_path = json_path_var.get().strip()
         biomarker_name = biomarker_var.get()
-        output_path = output_file_var.get().strip()
 
         if not os.path.exists(json_path):
             messagebox.showerror("Error", "Invalid JSON file selected.")
-            return
-        if not output_path:
-            messagebox.showerror("Error", "Please choose save location and name.")
             return
 
         with open(json_path, "r") as f:
             coords = json.load(f)
 
         func = BIOMARKERS[biomarker_name]
+        kwargs = {}
+
+        # gather all user-entered parameters
+        for name, entry in param_entries.items():
+            val = entry.get().strip()
+            if val:
+                try:
+                    kwargs[name] = eval(val)
+                except Exception:
+                    kwargs[name] = val  # keep as string if not evaluable
+
         try:
-            results = func(coords)
+            results = func(coords, **kwargs)
         except Exception as e:
             messagebox.showerror("Error", f"Error while running {biomarker_name}:\n{e}")
             raise
 
-        save_results(results, output_path)
-        messagebox.showinfo("Success", f"✅ {biomarker_name} biomarker completed!\nResults saved to:\n{output_path}")
+        # print and visualize results
+        result_box.config(state="normal")
+        result_box.delete("1.0", tk.END)
+        result_box.insert(tk.END, pformat(results, indent=2))
+        result_box.config(state="disabled")
 
-    # ---- UI Layout ----
+        visualize_results(results)
+        print(f"✅ {biomarker_name} biomarker completed successfully.")
+
+    # --- Layout ---
     pad_y = 5
     label_style = {"bg": "white", "font": ("Helvetica", 10)}
 
     tk.Label(root, text="Select Biomarker:", **label_style).pack(pady=pad_y)
-    ttk.Combobox(root, textvariable=biomarker_var, values=list(BIOMARKERS.keys()),
-                 state="readonly", width=25).pack()
+    biomarker_menu = ttk.Combobox(
+        root, textvariable=biomarker_var, values=list(BIOMARKERS.keys()),
+        state="readonly", width=25
+    )
+    biomarker_menu.pack()
+    biomarker_var.trace_add("write", update_param_fields)
 
     tk.Label(root, text="Landmarks JSON File:", **label_style).pack(pady=pad_y)
     tk.Entry(root, textvariable=json_path_var, width=55, relief="solid", borderwidth=1).pack()
     tk.Button(root, text="Browse JSON", command=choose_json,
               width=20, bg="#FAFAFA", fg="black", relief="flat").pack(pady=pad_y)
 
-    tk.Label(root, text="Output File:", **label_style).pack(pady=pad_y)
-    tk.Entry(root, textvariable=output_file_var, width=55, relief="solid", borderwidth=1).pack()
-    tk.Button(root, text="Choose Save Location", command=choose_output_file,
-              width=20, bg="#FAFAFA", fg="black", relief="flat").pack(pady=pad_y)
-
-    tk.Label(root, text="Export Options:", **label_style).pack(pady=pad_y)
-    tk.Checkbutton(root, text="Export JSON", variable=export_json_var, bg="white").pack()
-    tk.Checkbutton(root, text="Export CSV", variable=export_csv_var, bg="white").pack()
+    params_frame = tk.Frame(root, bg="white")
+    params_frame.pack(pady=10)
+    update_param_fields()
 
     tk.Button(
         root,
         text="Run Biomarker",
         command=run_biomarker,
-        bg="#C8E6C9",  # light green
+        bg="#C8E6C9",
         fg="black",
-        activebackground="#B2DFDB",
-        activeforeground="black",
         relief="flat",
         width=22,
         height=2,
         font=("Helvetica", 11, "bold")
-    ).pack(pady=20)
+    ).pack(pady=10)
+
+    tk.Label(root, text="Results:", **label_style).pack(pady=pad_y)
+    global result_box
+    result_box = tk.Text(root, width=70, height=15, wrap="word",
+                         bg="#F9F9F9", fg="black", font=("Courier", 9))
+    result_box.pack(pady=10)
+    result_box.config(state="disabled")
 
     root.mainloop()
 

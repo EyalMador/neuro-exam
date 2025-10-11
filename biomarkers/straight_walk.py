@@ -215,7 +215,7 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
 
 def extract_straight_walk_biomarkers(landmarks, fps):
 
-    [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = extract_traj(landmarks, "LHEEL", "RHEEL", "LBIGTOE", "RBIGTOE", "LKNEE", "RKNEE", "LHIP", "RHIP", "LANKLE", "RANKLE")
+    [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = extract_traj(landmarks["pose"],[ "LHEEL", "RHEEL", "LBIGTOE", "RBIGTOE", "LKNEE", "RKNEE", "LHIP", "RHIP", "LANKLE", "RANKLE"])
 
 
     biomarkers = {}
