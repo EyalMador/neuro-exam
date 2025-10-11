@@ -88,7 +88,7 @@ def run_landmarks_gui():
                 if os.path.exists(video_path_generated):
                     os.remove(video_path_generated)
 
-            messagebox.showinfo("Success", f"✅ Extraction complete!\nSaved to:\n{output_dir}")
+            messagebox.showinfo("Success", f"Extraction complete!\nSaved to:\n{output_dir}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to extract landmarks:\n{e}")
             raise
