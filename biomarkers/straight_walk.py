@@ -1,4 +1,6 @@
 import numpy as np
+from .helper import extract_traj
+
     
 def is_foot_flat(heel, toe, threshold = 0.02):
     return abs(heel['y'] - toe['y']) < threshold
@@ -128,7 +130,7 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
 
 
 
-def knee_angles(left_knee, left_hip, left_ankle, right_knee, right_heep, right_ankle):
+def knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
     frames = sorted([int(f) for f in left_knee.keys()])
     
     knee_angles = {
@@ -139,7 +141,7 @@ def knee_angles(left_knee, left_hip, left_ankle, right_knee, right_heep, right_a
     
     for side, hip, knee, ankle in [
         ('left', left_hip, left_knee, left_ankle),
-        ('right', right_heep, right_knee, right_ankle)
+        ('right', right_hip, right_knee, right_ankle)
     ]:
         for frame in frames:
             frame_str = str(frame)
@@ -172,9 +174,9 @@ def knee_angles(left_knee, left_hip, left_ankle, right_knee, right_heep, right_a
     return knee_angles
 
 
-def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_heep, right_ankle):
+def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
 
-    knee_angles = knee_angles(left_knee, left_hip, left_ankle, right_knee, right_heep, right_ankle)
+    knee_angles = knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     
     all_angles = knee_angles['all']
     
@@ -210,4 +212,16 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_he
             'all': all_angles
         }
     }
+
+def extract_straight_walk_biomarkers(landmarks, fps):
+
+    [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = extract_traj(landmarks, "LHEEL", "RHEEL", "LBIGTOE", "RBIGTOE", "LKNEE", "RKNEE", "LHIP", "RHIP", "LANKLE", "RANKLE")
+
+
+    biomarkers = {}
+    biomarkers["steps"] = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
+    biomarkers["knee_angles"] = knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
+    return biomarkers
+
+
 
