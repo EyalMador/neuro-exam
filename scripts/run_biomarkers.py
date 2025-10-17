@@ -6,12 +6,15 @@ from pprint import pformat
 import matplotlib.pyplot as plt
 
 # --- Example imports ---
-# from biomarkers.finger_to_nose import extract_finger_to_nose_biomarkers
+from biomarkers.finger_to_nose import extract_finger_to_nose_biomarkers
 from biomarkers.straight_walk import extract_straight_walk_biomarkers
+from biomarkers.heel_to_toe_walk import extract_heel_to_toe_biomarkers
+
 
 BIOMARKERS = {
     # "Finger to Nose": extract_finger_to_nose_biomarkers,
     "Straight Walk": extract_straight_walk_biomarkers,
+    "Heel To Toe": extract_heel_to_toe_biomarkers
 }
 
 

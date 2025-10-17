@@ -1,12 +1,14 @@
 import numpy as np
-from .helper import extract_traj
+import biomarkers.helper as helper
+import landmarks.name_conventions as lnc
+
 
     
-def is_foot_flat(heel, toe, threshold = 0.02):
+def is_foot_flat(heel, toe, threshold = 0.5):
     return abs(heel['y'] - toe['y']) < threshold
 
 def detect_steps(left_heel, left_toe, right_heel, right_toe):
-    frames = sorted([int(f) for f in left_heel.keys()])
+    frames = range(len(left_heel))
     
     steps = {
         'left': [],
@@ -27,7 +29,7 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
             heel_coords = heel[frame_str]
             toe_coords = toe[frame_str]
             
-            foot_is_flat = is_foot_flat(heel_coords, toe_coords, flatness_threshold = 0.02)
+            foot_is_flat = is_foot_flat(heel_coords, toe_coords, 0.3)
             
             #step start
             if not foot_is_flat and not in_step:
@@ -59,10 +61,10 @@ def stride_lengths(heel, steps, foot):
             heel1 = heel[frame1]
             heel2 = heel[frame2]
             
-            h1 = [heel1['x'], 0, heel1['z']]
-            h2 = [heel2['x'], 0, heel2['z']]
+            h1 = np.array([heel1['x'], 0, heel1['z']])
+            h2 = np.array([heel2['x'], 0, heel2['z']])
 
-            stride_length = abs(np.linalg.norm(h2 - h1))
+            stride_length = np.linalg.norm(h2 - h1)
             stride_lengths.append(stride_length)
     
     return stride_lengths
@@ -94,10 +96,11 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
     
     # step times
     step_times_data = step_times(steps, fps)
-    step_times = step_times_data['all']
+    step_times_all = step_times_data['all']
     
     #empty cases
-    if not strides or not step_times:
+    if not strides or not step_times_all:
+
         return {
             'error': 'No steps detected',
             'step_size': {},
@@ -112,16 +115,16 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
             'max': float(np.max(strides)),
             'std': float(np.std(strides)),
             'count': len(strides),
-            'all': strides
+            #'all': strides
         },
         'step_time': {
-            'mean': float(np.mean(step_times)),
-            'median': float(np.median(step_times)),
-            'min': float(np.min(step_times)),
-            'max': float(np.max(step_times)),
-            'std': float(np.std(step_times)),
-            'count': len(step_times),
-            'all': step_times
+            'mean': float(np.mean(step_times_all)),
+            'median': float(np.median(step_times_all)),
+            'min': float(np.min(step_times_all)),
+            'max': float(np.max(step_times_all)),
+            'std': float(np.std(step_times_all)),
+            'count': len(step_times_all),
+            #'all': step_times_all
         }
     }
 
@@ -130,13 +133,13 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
 
 
 
-def knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
-    frames = sorted([int(f) for f in left_knee.keys()])
+def calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
+    frames = frames = range(len(left_knee))
     
     knee_angles = {
-        'left': [],
-        'right': [],
-        'all': []
+        'left':{},
+        'right': {},
+        'all': {}
     }
     
     for side, hip, knee, ankle in [
@@ -168,7 +171,7 @@ def knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_an
                 cos_angle = np.clip(cos_angle, -1.0, 1.0)
                 angle = np.degrees(np.arccos(cos_angle))
                 
-                knee_angles[side].append(angle)
+                knee_angles[side][frame] = angle
                 knee_angles['all'].append(angle)
     
     return knee_angles
@@ -176,51 +179,40 @@ def knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_an
 
 def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
 
-    knee_angles = knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
-    
+    knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
+    minimum_angles = helper.datapoints_local_minimums(knee_angles)
+
     all_angles = knee_angles['all']
     
     if not all_angles:
         return {'error': 'No knee angles detected'}
-    
-    return {
-        'left': {
-            'mean': float(np.mean(knee_angles['left'])) if knee_angles['left'] else None,
-            'median': float(np.median(knee_angles['left'])) if knee_angles['left'] else None,
-            'min': float(np.min(knee_angles['left'])) if knee_angles['left'] else None,
-            'max': float(np.max(knee_angles['left'])) if knee_angles['left'] else None,
-            'std': float(np.std(knee_angles['left'])) if knee_angles['left'] else None,
-            'count': len(knee_angles['left']),
-            'all': knee_angles['left']
-        },
-        'right': {
-            'mean': float(np.mean(knee_angles['right'])) if knee_angles['right'] else None,
-            'median': float(np.median(knee_angles['right'])) if knee_angles['right'] else None,
-            'min': float(np.min(knee_angles['right'])) if knee_angles['right'] else None,
-            'max': float(np.max(knee_angles['right'])) if knee_angles['right'] else None,
-            'std': float(np.std(knee_angles['right'])) if knee_angles['right'] else None,
-            'count': len(knee_angles['right']),
-            'all': knee_angles['right']
-        },
-        'all': {
-            'mean': float(np.mean(all_angles)),
-            'median': float(np.median(all_angles)),
-            'min': float(np.min(all_angles)),
-            'max': float(np.max(all_angles)),
-            'std': float(np.std(all_angles)),
-            'count': len(all_angles),
-            'all': all_angles
-        }
-    }
+
+
+    statistics = {}
+    for side in ['left', 'right']:
+        statistics[side] = {
+                'mean': float(np.mean(minimum_angles[side])) if len(minimum_angles[side]) > 0 else None,
+                'median': float(np.median(minimum_angles[side])) if len(minimum_angles[side]) > 0 else None,
+                'min': float(np.min(minimum_angles[side])) if len(minimum_angles[side]) > 0 else None,
+                'max': float(np.max(minimum_angles[side])) if len(minimum_angles[side]) > 0 else None,
+                'std': float(np.std(minimum_angles[side])) if len(minimum_angles[side]) > 0 else None,
+                'count': len(minimum_angles[side]),
+                #'all': minimum_angles[side]
+            }
+        
+    return statistics
+
 
 def extract_straight_walk_biomarkers(landmarks, fps):
-
-    [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = extract_traj(landmarks["pose"],[ "LHEEL", "RHEEL", "LBIGTOE", "RBIGTOE", "LKNEE", "RKNEE", "LHIP", "RHIP", "LANKLE", "RANKLE"])
+    rtm_names_landmarks = helper.rtm_indices_to_names(landmarks, lnc.rtm_mapping())
+    [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle"])
 
 
     biomarkers = {}
     biomarkers["steps"] = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
-    biomarkers["knee_angles"] = knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
+    biomarkers["knee_angles"] = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
+
+    helper.plot_biomarkers(biomarkers)
     return biomarkers
 
 

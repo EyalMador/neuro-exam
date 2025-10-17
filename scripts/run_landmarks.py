@@ -7,7 +7,7 @@ from landmarks.main_processor import get_landmarks, save_json, save_csv
 def run_landmarks_gui():
     root = tk.Tk()
     root.title("Run Landmarks Extraction")
-    root.geometry("480x420")
+    root.geometry("500x500")  # Increased height
     root.configure(bg="white")
 
     # ---- Variables ----
@@ -94,54 +94,59 @@ def run_landmarks_gui():
             raise
 
     # ---- UI Layout ----
-    pad_y = 5
+    pad_y = 8
     label_style = {"bg": "white", "font": ("Helvetica", 10)}
 
-    tk.Label(root, text="Select Library:", **label_style).pack(pady=pad_y)
+    tk.Label(root, text="Select Library:", **label_style).pack(pady=(10, 2))
     lib_combo = ttk.Combobox(root, textvariable=lib_var,
                              values=["mediapipe", "rtmlib"],
                              state="readonly", width=20)
-    lib_combo.pack()
+    lib_combo.pack(pady=(0, pad_y))
     lib_combo.bind("<<ComboboxSelected>>", update_model_types)
 
-    tk.Label(root, text="Select Model Type:", **label_style).pack(pady=pad_y)
+    tk.Label(root, text="Select Model Type:", **label_style).pack(pady=(5, 2))
     model_combo = ttk.Combobox(root, textvariable=model_type_var,
                                values=["pose", "hands", "holistic"],
                                state="readonly", width=20)
-    model_combo.pack()
+    model_combo.pack(pady=(0, pad_y))
 
-    tk.Label(root, text="Video File:", **label_style).pack(pady=pad_y)
+    tk.Label(root, text="Video File:", **label_style).pack(pady=(5, 2))
     tk.Entry(root, textvariable=video_path_var, width=55,
-             relief="solid", borderwidth=1).pack()
+             relief="solid", borderwidth=1).pack(pady=(0, 2))
     tk.Button(root, text="Browse Video", command=choose_video,
-              width=20, bg="#FAFAFA", fg="black", relief="flat").pack(pady=pad_y)
+              width=20, bg="#FAFAFA", fg="black", relief="flat").pack(pady=(0, pad_y))
 
-    tk.Label(root, text="Output File:", **label_style).pack(pady=pad_y)
+    tk.Label(root, text="Output File:", **label_style).pack(pady=(5, 2))
     tk.Entry(root, textvariable=output_file_var, width=55,
-             relief="solid", borderwidth=1).pack()
+             relief="solid", borderwidth=1).pack(pady=(0, 2))
     tk.Button(root, text="Choose Save Location", command=choose_output_file,
-              width=20, bg="#FAFAFA", fg="black", relief="flat").pack(pady=pad_y)
+              width=20, bg="#FAFAFA", fg="black", relief="flat").pack(pady=(0, pad_y))
 
-    tk.Label(root, text="Export Options:", **label_style).pack(pady=pad_y)
-    tk.Checkbutton(root, text="Export Video", variable=export_video_var, bg="white").pack()
-    tk.Checkbutton(root, text="Export JSON", variable=export_json_var, bg="white").pack()
-    tk.Checkbutton(root, text="Export CSV", variable=export_csv_var, bg="white").pack()
+    tk.Label(root, text="Export Options:", **label_style).pack(pady=(5, 2))
+    export_frame = tk.Frame(root, bg="white")
+    export_frame.pack(pady=(0, 10))
+    tk.Checkbutton(export_frame, text="Export Video", variable=export_video_var, bg="white").pack()
+    tk.Checkbutton(export_frame, text="Export JSON", variable=export_json_var, bg="white").pack()
+    tk.Checkbutton(export_frame, text="Export CSV", variable=export_csv_var, bg="white").pack()
 
-    # --- Run Extraction Button ---
+    # --- Run Extraction Button (with spacing) ---
+    tk.Label(root, text="", bg="white").pack(pady=5)  # Spacer
+    
     run_button = tk.Button(
         root,
         text="Run Extraction",
         command=run_extraction,
-        bg="#C8E6C9",  # light green
-        fg="black",
-        activebackground="#B2DFDB",
-        activeforeground="black",
-        relief="flat",
+        bg="#4CAF50",  # Material green
+        fg="white",
+        activebackground="#45A049",
+        activeforeground="white",
+        relief="raised",
         width=22,
         height=2,
-        font=("Helvetica", 11, "bold")
+        font=("Helvetica", 12, "bold"),
+        cursor="hand2"
     )
-    run_button.pack(pady=20)
+    run_button.pack(pady=(10, 20))
 
     root.mainloop()
 

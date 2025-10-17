@@ -170,7 +170,7 @@ if __name__ == "__main__":
     # All 4 test videos are inside Video_1 folder
     test_videos = [
         #"SAW_Ido",
-        "SAW_Shir_90"
+        "SAW_SIDE"
         #"FTN_far_3_valid",
         #"FTN_close_3_valid",
         #"FTN_1_valid",
@@ -180,10 +180,10 @@ if __name__ == "__main__":
     ]
 
     for test_type in test_videos:
-        source_video_path = f"../data/Raw_Videos/Video_1/{test_type}.mp4"
+        source_video_path = f"./data/Raw_Videos/Video_1/{test_type}.mp4"
 
         # Output dirs
-        output_video_path = "../data/output/Video_1/Video_output"
+        output_video_path = "./data/output/Video_1/Video_output"
         output_video_name = f"Video_1_out_{test_type}.mp4"
 
         output_json_path = "../data/output/Video_1/Landmarks_output"

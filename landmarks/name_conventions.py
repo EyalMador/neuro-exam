@@ -36,3 +36,7 @@ RTM = {     'BODY_0':  "Nose",
     #right hand
     {115-135, 21 Right Hand Keypoints}
 """""
+
+def rtm_mapping():
+    #only for bodey now
+    return RTM
