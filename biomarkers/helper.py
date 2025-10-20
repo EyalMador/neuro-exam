@@ -49,6 +49,7 @@ def extract_traj(coords_dict, landmarks_names):
     return trajectories
 
 
+
 def rtm_indices_to_names(coords_dict, rtm_mapping):
     new_coords_dict = {"pose": {}, "hands": coords_dict.get("hands", {})}
 
@@ -131,8 +132,8 @@ def datapoints_local_minimums(data, prominence=0.01, distance=10,
     }
     
     for side in ['left', 'right']:
-        frames = np.array(data[side].keys())
-        distances = np.array(data[side][frame] for frame in frames)
+        frames = np.array(list(data[side].keys()))
+        distances = np.array([data[side][frame] for frame in frames])
         
         if len(distances) == 0:
             minimums[side] = {
@@ -175,95 +176,184 @@ def datapoints_local_minimums(data, prominence=0.01, distance=10,
 
 
 
-def plot_biomarkers(biomarkers):
+def plot_biomarkers(biomarkers, test_name='straight_walk'):
     """
-    Simple plot of all biomarkers.
+    Generic plot for biomarkers based on test type.
     
     Args:
-        biomarkers: dict from extract_straight_walk_biomarkers()
+        biomarkers: dict from extract_*_biomarkers()
+        test_name: str, one of 'straight_walk', 'heel_to_toe', etc.
     """
-    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     
-    # Step sizes
-    step_sizes = biomarkers['steps']['step_size']['all']
-    axes[0, 0].plot(step_sizes, marker='o', linewidth=2)
-    axes[0, 0].set_title('Step Sizes')
-    axes[0, 0].set_xlabel('Step')
-    axes[0, 0].set_ylabel('Size (pixels)')
-    axes[0, 0].grid(True, alpha=0.3)
+    # Helper function to safely get nested data
+    def safe_get(data, *keys, default=None):
+        """Safely navigate nested dict/list structures"""
+        for key in keys:
+            try:
+                if isinstance(data, dict):
+                    data = data[key]
+                elif isinstance(data, list) and isinstance(key, int):
+                    data = data[key]
+                else:
+                    return default
+            except (KeyError, IndexError, TypeError):
+                return default
+        return data if data is not None else default
     
-    # Step times
-    step_times = biomarkers['steps']['step_time']['all']
-    axes[0, 1].plot(step_times, marker='s', linewidth=2, color='purple')
-    axes[0, 1].set_title('Step Times')
-    axes[0, 1].set_xlabel('Step')
-    axes[0, 1].set_ylabel('Time (s)')
-    axes[0, 1].grid(True, alpha=0.3)
+    # ADD THIS NEW HELPER FUNCTION HERE
+    def _extract_continuous_distances(biomarkers, key):
+        """Extract continuous distance data organized by frame"""
+        result = {'Left': [], 'Right': []}
+        
+        for side in ['left', 'right']:
+            all_distances = safe_get(biomarkers, key, side, 'all_distances', default={})
+            if all_distances:
+                # Sort by frame number and extract values
+                frames = sorted(all_distances.keys())
+                values = [all_distances[frame] for frame in frames]
+                result[side.capitalize()] = values
+        
+        return result
     
-    # Knee angles - get the 'all' lists from statistics
-    left_angles = biomarkers['knee_angles']['left']['all']
-    right_angles = biomarkers['knee_angles']['right']['all']
-    axes[1, 0].plot(left_angles, label='Left', linewidth=2)
-    axes[1, 0].plot(right_angles, label='Right', linewidth=2)
-    axes[1, 0].set_title('Knee Angles')
-    axes[1, 0].set_xlabel('Frame')
-    axes[1, 0].set_ylabel('Angle (degrees)')
-    axes[1, 0].legend()
-    axes[1, 0].grid(True, alpha=0.3)
-    
-    # Statistics text
-    axes[1, 1].axis('off')
-    stats = f"""
+    # Define plot configurations for each test type
+    plot_configs = {
+        'straight_walk': [
+            {
+                'data': lambda b: safe_get(b, 'steps', 'step_size', 'all', default=[]),
+                'title': 'Step Sizes',
+                'xlabel': 'Step',
+                'ylabel': 'Size (pixels)',
+                'marker': 'o',
+                'color': None
+            },
+            {
+                'data': lambda b: safe_get(b, 'steps', 'step_time', 'all', default=[]),
+                'title': 'Step Times',
+                'xlabel': 'Step',
+                'ylabel': 'Time (s)',
+                'marker': 's',
+                'color': 'purple'
+            },
+            {
+                'data': lambda b: {
+                    'Left': safe_get(b, 'knee_angles', 'left', 'all', default=[]),
+                    'Right': safe_get(b, 'knee_angles', 'right', 'all', default=[])
+                },
+                'title': 'Knee Angles',
+                'xlabel': 'Frame',
+                'ylabel': 'Angle (degrees)',
+                'type': 'multi_line'
+            },
+            {
+                'type': 'stats',
+                'data': lambda b: f"""
 Step Size:
-  Mean: {biomarkers['steps']['step_size']['mean']:.2f}px
-  Std: {biomarkers['steps']['step_size']['std']:.2f}px
+  Mean: {safe_get(b, 'steps', 'step_size', 'mean', default=0):.2f}px
+  Std: {safe_get(b, 'steps', 'step_size', 'std', default=0):.2f}px
 
 Step Time:
-  Mean: {biomarkers['steps']['step_time']['mean']:.3f}s
-  Std: {biomarkers['steps']['step_time']['std']:.3f}s
+  Mean: {safe_get(b, 'steps', 'step_time', 'mean', default=0):.3f}s
+  Std: {safe_get(b, 'steps', 'step_time', 'std', default=0):.3f}s
 
 Knee Angles (all):
-  Mean: {biomarkers['knee_angles']['all']['mean']:.1f}°
-  Std: {biomarkers['knee_angles']['all']['std']:.1f}°
-    """
-    axes[1, 1].text(0.1, 0.5, stats, fontsize=11, family='monospace',
-                    bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-    
-    plt.tight_layout()
-    plt.show()
-    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-
-    # Step sizes
-    step_sizes = biomarkers['steps']['step_size']['all']
-    axes[0, 0].plot(step_sizes, marker='o', linewidth=2)
-    axes[0, 0].set_title('Step Sizes')
-    axes[0, 0].set_xlabel('Step')
-    axes[0, 0].set_ylabel('Size (pixels)')
-    axes[0, 0].grid(True, alpha=0.3)
-    
-    # Step times
-    step_times = biomarkers['steps']['step_time']['all']
-    axes[0, 1].plot(step_times, marker='s', linewidth=2, color='purple')
-    axes[0, 1].set_title('Step Times')
-    axes[0, 1].set_xlabel('Step')
-    axes[0, 1].set_ylabel('Time (s)')
-    axes[0, 1].grid(True, alpha=0.3)
-
-
-    # Knee angles
-    left_angles = biomarkers['knee_angles']['left']
-    right_angles = biomarkers['knee_angles']['right']
-    axes[1, 0].plot(left_angles, label='Left', linewidth=2)
-    axes[1, 0].plot(right_angles, label='Right', linewidth=2)
-    axes[1, 0].set_title('Knee Angles')
-    axes[1, 0].set_xlabel('Frame')
-    axes[1, 0].set_ylabel('Angle (degrees)')
-    axes[1, 0].legend()
-    axes[1, 0].grid(True, alpha=0.3)
-
+  Mean: {safe_get(b, 'knee_angles', 'all', 'mean', default=0):.1f}°
+  Std: {safe_get(b, 'knee_angles', 'all', 'std', default=0):.1f}°
+                """
+            }
+        ],
         
+    'heel_to_toe': [
+        {
+            'data': lambda b: safe_get(b, 'steps', 'step_size', 'all', default=[]),
+            'title': 'Step Sizes',
+            'xlabel': 'Step',
+            'ylabel': 'Size (pixels)',
+            'marker': 'o',
+            'color': 'blue'
+        },
+        {
+            'data': lambda b: {
+                'Left': safe_get(b, 'heel_toe_distances', 'left', 'all', default=[]),
+                'Right': safe_get(b, 'heel_toe_distances', 'right', 'all', default=[])
+            },
+            'title': 'Heel-to-Toe Minimum Distances',
+            'xlabel': 'Measurement',
+            'ylabel': 'Distance (pixels)',
+            'type': 'multi_line'
+        },
+        {
+            'data': lambda b: _extract_continuous_distances(b, 'heel_toe_distances'),
+            'title': 'Heel-to-Toe Distance Over Time',
+            'xlabel': 'Frame',
+            'ylabel': 'Distance (pixels)',
+            'type': 'multi_line'
+        },
+        {
+            'type': 'stats',
+            'data': lambda b: f"""
+    Heel-to-Toe (Left):
+    Mean: {safe_get(b, 'heel_toe_distances', 'left', 'mean', default=0):.2f}px
+    Std: {safe_get(b, 'heel_toe_distances', 'left', 'std', default=0):.2f}px
+    Count: {safe_get(b, 'heel_toe_distances', 'left', 'count', default=0)}
+
+    Heel-to-Toe (Right):
+    Mean: {safe_get(b, 'heel_toe_distances', 'right', 'mean', default=0):.2f}px
+    Std: {safe_get(b, 'heel_toe_distances', 'right', 'std', default=0):.2f}px
+    Count: {safe_get(b, 'heel_toe_distances', 'right', 'count', default=0)}
+
+    Step Size:
+    Mean: {safe_get(b, 'steps', 'step_size', 'mean', default=0):.2f}px
+    Count: {safe_get(b, 'steps', 'step_size', 'count', default=0)}
+            """
+        }
+    ]
+    
+    }
+    
+    if test_name not in plot_configs:
+        raise ValueError(f"Unknown test name: {test_name}. Available: {list(plot_configs.keys())}")
+    
+    config = plot_configs[test_name]
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    axes = axes.flatten()
+    
+    for i, plot_spec in enumerate(config):
+        ax = axes[i]
+        
+        if plot_spec.get('type') == 'stats':
+            # Stats text box
+            ax.axis('off')
+            stats_text = plot_spec['data'](biomarkers)
+            ax.text(0.1, 0.5, stats_text, fontsize=11, family='monospace',
+                   bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        
+        elif plot_spec.get('type') == 'multi_line':
+            # Multiple lines on same plot
+            data_dict = plot_spec['data'](biomarkers)
+            for label, data in data_dict.items():
+                if data is not None and len(data) > 0:
+                    ax.plot(data, label=label, linewidth=2)
+            if any(len(data) > 0 for data in data_dict.values() if data is not None):
+                ax.set_title(plot_spec['title'])
+                ax.set_xlabel(plot_spec['xlabel'])
+                ax.set_ylabel(plot_spec['ylabel'])
+                ax.legend()
+                ax.grid(True, alpha=0.3)
+            else:
+                ax.axis('off')  # Hide empty plot
+        
+        else:
+            # Single line plot
+            data = plot_spec['data'](biomarkers)
+            if data is not None:
+                ax.plot(data, marker=plot_spec.get('marker'), 
+                       linewidth=2, color=plot_spec.get('color'))
+                ax.set_title(plot_spec['title'])
+                ax.set_xlabel(plot_spec['xlabel'])
+                ax.set_ylabel(plot_spec['ylabel'])
+                ax.grid(True, alpha=0.3)
+            else:
+                ax.axis('off')  # Hide empty plot
+    
     plt.tight_layout()
     plt.show()
-
-
-

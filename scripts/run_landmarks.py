@@ -4,6 +4,124 @@ from tkinter import filedialog, ttk, messagebox
 from landmarks.main_processor import get_landmarks, save_json, save_csv
 
 
+def run_landmarks_batch(
+    input_dir,
+    output_dir,
+    lib="mediapipe",
+    model_type="pose",
+    export_video=True,
+    export_json=True,
+    export_csv=True,
+    video_extensions=None
+):
+    """
+    Batch process multiple videos from a directory.
+    
+    Args:
+        input_dir (str): Path to directory containing video files
+        output_dir (str): Path to directory where outputs will be saved
+        lib (str): Library to use - "mediapipe" or "rtmlib"
+        model_type (str): Model type - "pose", "hands", "holistic" (mediapipe) or "body26" (rtmlib)
+        export_video (bool): Whether to export annotated video
+        export_json (bool): Whether to export JSON landmarks
+        export_csv (bool): Whether to export CSV landmarks
+        video_extensions (list): List of video extensions to process
+    
+    Returns:
+        dict: Results summary with successful and failed videos
+    
+    Example:
+        results = run_landmarks_batch(
+            input_dir="/path/to/input/videos",
+            output_dir="/path/to/output",
+            lib="mediapipe",
+            model_type="pose",
+            export_video=True,
+            export_json=True,
+            export_csv=True
+        )
+    """
+    if video_extensions is None:
+        video_extensions = ['.mp4', '.avi', '.mov', '.MP4', '.AVI', '.MOV']
+    
+    if not os.path.exists(input_dir):
+        raise ValueError(f"Input directory does not exist: {input_dir}")
+    
+    # Create output directories
+    output_video_dir = os.path.join(output_dir, "Video_output")
+    output_json_dir = os.path.join(output_dir, "Landmarks_output")
+    os.makedirs(output_video_dir, exist_ok=True)
+    os.makedirs(output_json_dir, exist_ok=True)
+    
+    # Get all video files
+    input_path = Path(input_dir)
+    video_files = [f for f in input_path.iterdir() 
+                   if f.is_file() and f.suffix in video_extensions]
+    
+    if not video_files:
+        print(f"No video files found in {input_dir}")
+        print(f"Looking for extensions: {video_extensions}")
+        return {"successful": [], "failed": []}
+    
+    print(f"\nFound {len(video_files)} video(s) to process")
+    print(f"Library: {lib}, Model: {model_type}")
+    print(f"Export options - Video: {export_video}, JSON: {export_json}, CSV: {export_csv}\n")
+    
+    results = {"successful": [], "failed": []}
+    
+    # Process each video
+    for idx, video_file in enumerate(video_files, 1):
+        video_path = str(video_file)
+        base_name = video_file.stem
+        
+        output_video_name = f"{base_name}.mp4"
+        output_json_name = f"{base_name}.json"
+        output_csv_name = f"{base_name}.csv"
+        
+        print(f"\n[{idx}/{len(video_files)}] Processing: {base_name}")
+        
+        try:
+            coords = get_landmarks(lib, model_type, video_path, output_video_dir, output_video_name)
+            
+            if export_json:
+                save_json(coords, output_json_dir, output_json_name)
+                print(f"  Saved JSON: {output_json_name}")
+            
+            if export_csv:
+                save_csv(coords, output_json_dir, output_csv_name)
+                print(f"  Saved CSV: {output_csv_name}")
+            
+            if not export_video:
+                video_path_generated = os.path.join(output_video_dir, output_video_name)
+                if os.path.exists(video_path_generated):
+                    os.remove(video_path_generated)
+            else:
+                print(f"  Saved Video: {output_video_name}")
+            
+            results["successful"].append(base_name)
+            print(f"  Successfully processed {base_name}")
+            
+        except Exception as e:
+            print(f"  Failed to process {base_name}: {str(e)}")
+            results["failed"].append({"file": base_name, "error": str(e)})
+    
+    # Print summary
+    print("\n" + "="*60)
+    print("PROCESSING COMPLETE")
+    print("="*60)
+    print(f"Successful: {len(results['successful'])}/{len(video_files)}")
+    print(f"Failed: {len(results['failed'])}/{len(video_files)}")
+    
+    if results['failed']:
+        print("\nFailed files:")
+        for failed in results['failed']:
+            print(f"  - {failed['file']}: {failed['error']}")
+    
+    print(f"\nOutputs saved to: {output_dir}")
+    print("="*60 + "\n")
+    
+    return results
+
 def run_landmarks_gui():
     root = tk.Tk()
     root.title("Run Landmarks Extraction")

@@ -115,7 +115,7 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
             'max': float(np.max(strides)),
             'std': float(np.std(strides)),
             'count': len(strides),
-            #'all': strides
+            'all': strides
         },
         'step_time': {
             'mean': float(np.mean(step_times_all)),
@@ -124,7 +124,7 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
             'max': float(np.max(step_times_all)),
             'std': float(np.std(step_times_all)),
             'count': len(step_times_all),
-            #'all': step_times_all
+            'all': step_times_all
         }
     }
 
@@ -134,7 +134,7 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
 
 
 def calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
-    frames = frames = range(len(left_knee))
+    frames = range(len(left_knee))
     
     knee_angles = {
         'left':{},
@@ -172,7 +172,7 @@ def calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, rig
                 angle = np.degrees(np.arccos(cos_angle))
                 
                 knee_angles[side][frame] = angle
-                knee_angles['all'].append(angle)
+                knee_angles['all'][frame] = angle
     
     return knee_angles
 
