@@ -190,14 +190,18 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
 
     statistics = {}
     for side in ['left', 'right']:
+        side_minimums = minimum_angles[side]['min_values']
+
         statistics[side] = {
-                'mean': float(np.mean(minimum_angles[side])) if len(minimum_angles[side]) > 0 else None,
-                'median': float(np.median(minimum_angles[side])) if len(minimum_angles[side]) > 0 else None,
-                'min': float(np.min(minimum_angles[side])) if len(minimum_angles[side]) > 0 else None,
-                'max': float(np.max(minimum_angles[side])) if len(minimum_angles[side]) > 0 else None,
-                'std': float(np.std(minimum_angles[side])) if len(minimum_angles[side]) > 0 else None,
-                'count': len(minimum_angles[side]),
-                #'all': minimum_angles[side]
+                'mean': float(np.mean(side_minimums)) if len(side_minimums) > 0 else None,
+                'median': float(np.median(side_minimums)) if len(side_minimums) > 0 else None,
+                'min': float(np.min(side_minimums)) if len(side_minimums) > 0 else None,
+                'max': float(np.max(side_minimums)) if len(side_minimums) > 0 else None,
+                'std': float(np.std(side_minimums)) if len(side_minimums) > 0 else None,
+                'count': len(side_minimums),
+                'all': side_minimums,
+
+
             }
         
     return statistics

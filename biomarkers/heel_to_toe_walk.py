@@ -1,8 +1,8 @@
 import numpy as np
-from scipy.signal import find_peaks
 import biomarkers.helper as helper
 import landmarks.name_conventions as lnc
 import biomarkers.straight_walk as sw
+from biomarkers.helper import save_biomarkers_json
 
 
 def heel_toe_distance(left_heel, right_heel, left_toe, right_toe):
@@ -38,9 +38,8 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
 
     distance_data = heel_toe_distance(left_heel, right_heel, left_toe, right_toe)
     distances_minimums = helper.datapoints_local_minimums(distance_data)
-
     
-    if len(distances_minimums['left']['min_frames']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
+    if len(distances_minimums['left']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
         return {'error': 'No data detected'}
 
 
@@ -63,7 +62,7 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
     return statistics
 
 
-def extract_heel_to_toe_biomarkers(landmarks, fps):
+def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename, type_class):
     rtm_names_landmarks = helper.rtm_indices_to_names(landmarks, lnc.rtm_mapping())
     [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle"])
 
@@ -73,4 +72,5 @@ def extract_heel_to_toe_biomarkers(landmarks, fps):
     biomarkers["knee_angles"] = sw.knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
 
     helper.plot_biomarkers(biomarkers, "heel_to_toe")
+    save_biomarkers_json(biomarkers, output_dir, filename)
     return biomarkers

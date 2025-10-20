@@ -2,6 +2,99 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter, find_peaks
 from scipy.interpolate import UnivariateSpline
+import json, os
+
+
+
+def biomarkers_to_json_format(biomarkers, result="normal"):
+    """
+    Convert biomarkers dictionary to standardized JSON format.
+    
+    Parameters:
+    -----------
+    biomarkers : dict
+        Dictionary containing biomarker categories with statistics
+        Example: {
+            "heel_toe_distances": {
+                "left": {"mean": 10.5, "std": 2.3, ...},
+                "right": {"mean": 11.2, "std": 2.1, ...}
+            },
+            "knee_angles": {
+                "left": {"mean": 45.2, "std": 5.1, ...},
+                "right": {"mean": 44.8, "std": 4.9, ...}
+            }
+        }
+    result : str
+        Classification result (e.g., "normal", "abnormal")
+    
+    Returns:
+    --------
+    dict : Formatted dictionary ready for JSON export
+    """
+    formatted = {
+        "biomarkers": {},
+        "label": result
+    }
+    
+    biomarker_counter = 1
+    
+    for category_name, category_data in biomarkers.items():
+        if not isinstance(category_data, dict):
+            continue
+        
+        # Handle different nesting structures
+        for key, value in category_data.items():
+            # Skip non-statistical keys
+            if key in ['all', 'all_distances', 'min_frames', 'min_values', 
+                      'min_indices', 'smoothed_distances', 'properties', 'count']:
+                continue
+            
+            # If value is a dict with mean/std, extract it
+            if isinstance(value, dict) and ('mean' in value or 'std' in value):
+                biomarker_name = f"{category_name}_{key}"
+                formatted["biomarkers"][biomarker_name] = {
+                    "mean": round(value.get('mean', 0), 2),
+                    "std": round(value.get('std', 0), 2)
+                }
+                biomarker_counter += 1
+    
+    return formatted
+
+
+def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
+    """
+    Save biomarkers to JSON file in standardized format.
+    
+    Parameters:
+    -----------
+    biomarkers : dict
+        Biomarkers dictionary from extract_*_biomarkers functions
+    output_dir : str
+        Directory to save the JSON file
+    filename : str
+        Name of the output file (with or without .json extension)
+    result : str
+        Classification result
+    
+    Returns:
+    --------
+    str : Path to saved file
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    
+    if not filename.endswith('.json'):
+        filename += '.json'
+    
+    output_path = os.path.join(output_dir, filename)
+    
+    formatted_data = biomarkers_to_json_format(biomarkers, result)
+    
+    with open(output_path, 'w') as f:
+        json.dump(formatted_data, f, indent=2)
+    
+    print(f"Biomarkers saved to: {output_path}")
+    return output_path
+
 
 def extract_traj(coords_dict, landmarks_names):
     """
@@ -205,13 +298,41 @@ def plot_biomarkers(biomarkers, test_name='straight_walk'):
         """Extract continuous distance data organized by frame"""
         result = {'Left': [], 'Right': []}
         
-        for side in ['left', 'right']:
-            all_distances = safe_get(biomarkers, key, side, 'all_distances', default={})
-            if all_distances:
-                # Sort by frame number and extract values
-                frames = sorted(all_distances.keys())
-                values = [all_distances[frame] for frame in frames]
-                result[side.capitalize()] = values
+        # Try to get the data - it might be nested differently
+        distances_data = safe_get(biomarkers, key, default={})
+        
+        if not distances_data:
+            return result
+        
+        # Check if 'all_distances' exists at the top level
+        if 'all_distances' in distances_data:
+            all_dist = distances_data['all_distances']
+            # Check if it's organized by side
+            for side in ['left', 'right']:
+                if side in all_dist:
+                    side_data = all_dist[side]
+                    if isinstance(side_data, dict):
+                        frames = sorted(side_data.keys(), key=lambda x: int(x) if str(x).isdigit() else 0)
+                        values = [side_data[frame] for frame in frames]
+                        result[side.capitalize()] = values
+                    elif isinstance(side_data, list):
+                        result[side.capitalize()] = side_data
+        else:
+            # Data is organized as distances_data[side][frame_or_all_distances]
+            for side in ['left', 'right']:
+                side_data = safe_get(distances_data, side, default={})
+                
+                # Try 'all_distances' key first
+                all_distances = side_data.get('all_distances', None)
+                
+                if all_distances and isinstance(all_distances, dict):
+                    # Filter out non-numeric keys like 'left', 'right'
+                    frames = [k for k in all_distances.keys() if str(k).isdigit()]
+                    frames = sorted(frames, key=lambda x: int(x))
+                    values = [all_distances[frame] for frame in frames]
+                    result[side.capitalize()] = values
+                elif all_distances and isinstance(all_distances, list):
+                    result[side.capitalize()] = all_distances
         
         return result
     
@@ -262,52 +383,53 @@ Knee Angles (all):
             }
         ],
         
-    'heel_to_toe': [
-        {
-            'data': lambda b: safe_get(b, 'steps', 'step_size', 'all', default=[]),
-            'title': 'Step Sizes',
-            'xlabel': 'Step',
-            'ylabel': 'Size (pixels)',
-            'marker': 'o',
-            'color': 'blue'
-        },
-        {
-            'data': lambda b: {
-                'Left': safe_get(b, 'heel_toe_distances', 'left', 'all', default=[]),
-                'Right': safe_get(b, 'heel_toe_distances', 'right', 'all', default=[])
+        'heel_to_toe': [
+            {
+                'data': lambda b: {
+                    'Left': safe_get(b, 'heel_toe_distances', 'left', 'all', default=[]),
+                    'Right': safe_get(b, 'heel_toe_distances', 'right', 'all', default=[])
+                },
+                'title': 'Heel-to-Toe Minimum Distances',
+                'xlabel': 'Measurement',
+                'ylabel': 'Distance (pixels)',
+                'type': 'multi_line'
             },
-            'title': 'Heel-to-Toe Minimum Distances',
-            'xlabel': 'Measurement',
-            'ylabel': 'Distance (pixels)',
-            'type': 'multi_line'
-        },
-        {
-            'data': lambda b: _extract_continuous_distances(b, 'heel_toe_distances'),
-            'title': 'Heel-to-Toe Distance Over Time',
-            'xlabel': 'Frame',
-            'ylabel': 'Distance (pixels)',
-            'type': 'multi_line'
-        },
-        {
-            'type': 'stats',
-            'data': lambda b: f"""
-    Heel-to-Toe (Left):
-    Mean: {safe_get(b, 'heel_toe_distances', 'left', 'mean', default=0):.2f}px
-    Std: {safe_get(b, 'heel_toe_distances', 'left', 'std', default=0):.2f}px
-    Count: {safe_get(b, 'heel_toe_distances', 'left', 'count', default=0)}
+            {
+                'data': lambda b: _extract_continuous_distances(b, 'heel_toe_distances'),
+                'title': 'Heel-to-Toe Distance Over Time',
+                'xlabel': 'Frame',
+                'ylabel': 'Distance (pixels)',
+                'type': 'multi_line'
+            },
+            {
+                'data': lambda b: {
+                    'Left': safe_get(b, 'knee_angles', 'left', 'all', default=[]),
+                    'Right': safe_get(b, 'knee_angles', 'right', 'all', default=[])
+                },
+                'title': 'Knee Angles',
+                'xlabel': 'Frame',
+                'ylabel': 'Angle (degrees)',
+                'type': 'multi_line'
+            },
+            {
+                'type': 'stats',
+                'data': lambda b: f"""
+Heel-to-Toe (Left):
+  Mean: {safe_get(b, 'heel_toe_distances', 'left', 'mean', default=0):.2f}px
+  Std: {safe_get(b, 'heel_toe_distances', 'left', 'std', default=0):.2f}px
+  Count: {safe_get(b, 'heel_toe_distances', 'left', 'count', default=0)}
 
-    Heel-to-Toe (Right):
-    Mean: {safe_get(b, 'heel_toe_distances', 'right', 'mean', default=0):.2f}px
-    Std: {safe_get(b, 'heel_toe_distances', 'right', 'std', default=0):.2f}px
-    Count: {safe_get(b, 'heel_toe_distances', 'right', 'count', default=0)}
+Heel-to-Toe (Right):
+  Mean: {safe_get(b, 'heel_toe_distances', 'right', 'mean', default=0):.2f}px
+  Std: {safe_get(b, 'heel_toe_distances', 'right', 'std', default=0):.2f}px
+  Count: {safe_get(b, 'heel_toe_distances', 'right', 'count', default=0)}
 
-    Step Size:
-    Mean: {safe_get(b, 'steps', 'step_size', 'mean', default=0):.2f}px
-    Count: {safe_get(b, 'steps', 'step_size', 'count', default=0)}
-            """
-        }
-    ]
-    
+Knee Angles (all):
+  Mean: {safe_get(b, 'knee_angles', 'all', 'mean', default=0):.1f}°
+  Std: {safe_get(b, 'knee_angles', 'all', 'std', default=0):.1f}°
+                """
+            }
+        ]
     }
     
     if test_name not in plot_configs:

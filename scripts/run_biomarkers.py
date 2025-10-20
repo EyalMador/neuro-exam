@@ -18,6 +18,98 @@ BIOMARKERS = {
 }
 
 
+
+def biomarkers_to_json_format(biomarkers, result="normal"):
+    """
+    Convert biomarkers dictionary to standardized JSON format.
+    
+    Parameters:
+    -----------
+    biomarkers : dict
+        Dictionary containing biomarker categories with statistics
+        Example: {
+            "heel_toe_distances": {
+                "left": {"mean": 10.5, "std": 2.3, ...},
+                "right": {"mean": 11.2, "std": 2.1, ...}
+            },
+            "knee_angles": {
+                "left": {"mean": 45.2, "std": 5.1, ...},
+                "right": {"mean": 44.8, "std": 4.9, ...}
+            }
+        }
+    result : str
+        Classification result (e.g., "normal", "abnormal")
+    
+    Returns:
+    --------
+    dict : Formatted dictionary ready for JSON export
+    """
+    formatted = {
+        "biomarkers": {},
+        "result": result
+    }
+    
+    biomarker_counter = 1
+    
+    for category_name, category_data in biomarkers.items():
+        if not isinstance(category_data, dict):
+            continue
+        
+        # Handle different nesting structures
+        for key, value in category_data.items():
+            # Skip non-statistical keys
+            if key in ['all', 'all_distances', 'min_frames', 'min_values', 
+                      'min_indices', 'smoothed_distances', 'properties', 'count']:
+                continue
+            
+            # If value is a dict with mean/std, extract it
+            if isinstance(value, dict) and ('mean' in value or 'std' in value):
+                biomarker_name = f"b{biomarker_counter}"
+                formatted["biomarkers"][biomarker_name] = {
+                    "name": f"{category_name}_{key}",
+                    "mean": round(value.get('mean', 0), 2),
+                    "std": round(value.get('std', 0), 2)
+                }
+                biomarker_counter += 1
+    
+    return formatted
+
+
+def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
+    """
+    Save biomarkers to JSON file in standardized format.
+    
+    Parameters:
+    -----------
+    biomarkers : dict
+        Biomarkers dictionary from extract_*_biomarkers functions
+    output_dir : str
+        Directory to save the JSON file
+    filename : str
+        Name of the output file (with or without .json extension)
+    result : str
+        Classification result
+    
+    Returns:
+    --------
+    str : Path to saved file
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    
+    if not filename.endswith('.json'):
+        filename += '.json'
+    
+    output_path = os.path.join(output_dir, filename)
+    
+    formatted_data = biomarkers_to_json_format(biomarkers, result)
+    
+    with open(output_path, 'w') as f:
+        json.dump(formatted_data, f, indent=2)
+    
+    print(f"Biomarkers saved to: {output_path}")
+    return output_path
+
+
 def run_biomarkers_gui():
     root = tk.Tk()
     root.title("Run Biomarker Extraction")

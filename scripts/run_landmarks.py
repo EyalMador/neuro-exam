@@ -54,7 +54,7 @@ def run_landmarks_batch(
     os.makedirs(output_json_dir, exist_ok=True)
     
     # Get all video files
-    input_path = Path(input_dir)
+    input_path = input_dir
     video_files = [f for f in input_path.iterdir() 
                    if f.is_file() and f.suffix in video_extensions]
     
