@@ -51,8 +51,8 @@ def run_landmarks_batch(
     # Create output directories
     output_video_dir = os.path.join(output_dir, "Video_output")
     output_json_dir = Path(output_dir)
-   # os.makedirs(output_video_dir, exist_ok=True)
-   # os.makedirs(output_json_dir, exist_ok=True)
+    #os.makedirs(output_video_dir, exist_ok=True)
+    os.makedirs(output_json_dir, exist_ok=True)
     
     # Get all video files
     input_path = Path(input_dir)
