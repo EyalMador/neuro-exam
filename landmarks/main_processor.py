@@ -150,7 +150,7 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
             raise ValueError("RTMLib only supports model_type='body26' for now.")
 
         cap = get_video(source_video_path)
-        model = RTMModel(model_type="body26", device="cuda", backend="onnxruntime")
+        model = RTMModel(model_type="body26", device="cuda")
         coords = model.processing(
             cap,
             save_video_output=True,
