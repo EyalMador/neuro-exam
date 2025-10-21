@@ -24,7 +24,7 @@ def predict_result(chosen_model, filename):
     
 def classify_video(test_type, video_name):
   print("Starting classification process.")
-  create_temp_folder()
+  create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
   extract_landmarks(test_type, video_name)
   calculate_biomarkers(test_type)
   predict_result(test_type)
@@ -37,5 +37,5 @@ def train_model(test_type):
   extract_landmarks(test_type)
   calculate_biomarkers(test_type)
   train_svm(test_type)
-  cleanup_folder()
+  cleanup_folder(WORKING_FOLDER_PATH)
   print("Training process finished.")
