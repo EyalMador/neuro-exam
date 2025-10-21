@@ -1,3 +1,4 @@
+from automation import train_model, predict_result
 while True:
   while True:
     chosen_operation = input("Choose train/predict/exit: ")
