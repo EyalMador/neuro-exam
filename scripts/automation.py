@@ -49,19 +49,25 @@ def predict_result(chosen_model, filename):
     print("Test abnormal! Call a doctor.")
     
 def classify_video(test_type, video_name):
-  print("Starting classification process.")
-  create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-  extract_landmarks(test_type, video_name)
-  calculate_biomarkers(test_type)
-  predict_result(test_type)
-  cleanup_folder()
-  print("Classification process finished.")
+  print("Starting classification process...")
+  try:
+    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
+    extract_landmarks(test_type, video_name)
+    calculate_biomarkers(test_type)
+    predict_result(test_type)
+    print("Classification process finished successfully.")
+  except Exception as e:
+    print(e)
+  cleanup_folder(WORKING_FOLDER_PATH)
 
 def train_model(test_type):
-  print("Starting training process.")
-  create_temp_folder()
-  extract_landmarks(test_type)
-  calculate_biomarkers(test_type)
-  train_svm(test_type)
+  print("Starting training process...")
+  try:
+    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
+    extract_landmarks(test_type)
+    calculate_biomarkers(test_type)
+    train_svm(test_type)
+    print("Training process finished successfully.")
+  except Exception as e:
+    print(e)
   cleanup_folder(WORKING_FOLDER_PATH)
-  print("Training process finished.")
