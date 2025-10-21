@@ -1,30 +1,32 @@
-from automation import train_model, predict_result
+from automation import train_model, classify_video
+
+supported_tests = ["straight_walk", "heel_to_toe_walk", "raise_hands", "finger_to_nose"]
 
 while True:
   while True:
-    chosen_operation = input("Choose train/predict/exit: ")
+    chosen_operation = input("Choose train/classify/exit: ")
     if chosen_operation in ["train", "predict", "exit"]:
       break
 
   if chosen_operation == "train":
     while True:
-      chosen_model = input("Enter requested model to train: ")
-      if chosen_model not in supported_models:
-        print(f"Error: {chosen_model} model not supported.")
+      chosen_test = input("Enter requested model to train: ")
+      if chosen_test not in supported_tests:
+        print(f"Error: {chosen_test} test not supported.")
       else:
         break
-    train_model(chosen_model)
+    train_model(chosen_test)
 
-  if chosen_operation == "predict":
+  if chosen_operation == "classify":
     while True:
-      chosen_model = input("Enter requested model to predict: ")
-      if chosen_model not in supported_models:
-        print(f"Error: {chosen_model} model not supported.")
+      chosen_test = input("Enter requested test to classify: ")
+      if chosen_test not in supported_tests:
+        print(f"Error: {chosen_test} test not supported.")
       else:
         break
     filename = input("Enter name of video file: ")
     try:
-      predict_result(chosen_model, filename)
+      predict_result(chosen_test, filename)
     except Exception as e:
       print(e)
       continue
