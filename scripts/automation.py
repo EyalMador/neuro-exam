@@ -1,7 +1,7 @@
 #insert initialization scripts - drive mount, git clone, pip installs
 #insert clear command to remove prints
 
-def classify_test(test_type, video_name):
+def classify_video(test_type, video_name):
   print("Starting classification process.")
   create_temp_folder()
   extract_landmarks(test_type, video_name)
