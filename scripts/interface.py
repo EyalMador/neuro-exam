@@ -1,4 +1,5 @@
 from automation import train_model, classify_video
+from IPython.display import clear_output
 
 supported_tests = ["straight_walk", "heel_to_toe_walk", "raise_hands", "finger_to_nose"]
 
@@ -6,6 +7,7 @@ while True:
   while True:
     chosen_operation = input("Choose train/classify/exit: ")
     if chosen_operation in ["train", "predict", "exit"]:
+      clear_output(wait=True)
       break
 
   if chosen_operation == "train":
