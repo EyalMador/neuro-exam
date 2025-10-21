@@ -70,4 +70,4 @@ def train_model(test_type):
     print("Training process finished successfully.")
   except Exception as e:
     print(e)
-  cleanup_folder(WORKING_FOLDER_PATH)
+  #cleanup_folder(WORKING_FOLDER_PATH)
