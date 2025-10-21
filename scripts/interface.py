@@ -26,7 +26,7 @@ while True:
         break
     filename = input("Enter name of video file: ")
     try:
-      predict_result(chosen_test, filename)
+      classify_video(chosen_test, filename)
     except Exception as e:
       print(e)
       continue
