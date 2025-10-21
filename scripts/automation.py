@@ -8,7 +8,7 @@ BIOMARKERS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Biomarkers'
 
 def extract_landmarks(test_type, video_name=None):
   from scripts.run_landmarks import run_landmarks_batch
-  print("Extracting landmarks.")
+  print("Extracting landmarks...")
   
   #Extract from single video:
   if video_name is not None:
@@ -27,6 +27,7 @@ def extract_landmarks(test_type, video_name=None):
     )
 
 def calculate_biomarkers(test_type):
+  print("Calculating biomarkers...")
   if video_name is None:
     #insert run_biomarkers for all landmark files in landmark folder
 
