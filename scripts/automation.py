@@ -13,6 +13,7 @@ def extract_landmarks(test_type, video_name=None):
   
   #Extract from single video:
   if video_name is not None:
+    print("Should run landmarks.")
     #insert run_landmarks for single video
   
   #Extract from all videos in folder:
@@ -29,8 +30,7 @@ def extract_landmarks(test_type, video_name=None):
 
 def calculate_biomarkers(test_type):
   print("Calculating biomarkers...")
-  if video_name is None:
-    #insert run_biomarkers for all landmark files in landmark folder
+  #insert run_biomarkers for all landmark files in landmark folder
 
 def train_model(chosen_model):
   print(f"Starting to train model: {chosen_model}")
