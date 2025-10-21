@@ -6,6 +6,30 @@ WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/temp_script_folder'
 LANDMARKS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Landmarks'
 BIOMARKERS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Biomarkers'
 
+def extract_landmarks(test_type, video_name=None):
+  from scripts.run_landmarks import run_landmarks_batch
+  print("Extracting landmarks.")
+  
+  #Extract from single video:
+  if video_name is not None:
+    #insert run_landmarks for single video
+  
+  #Extract from all videos in folder:
+  else:
+    run_landmarks_batch(
+        input_dir=f"{DATA_PATH}/{test_type}",
+        output_dir=LANDMARKS_FOLDER_PATH,
+        lib="rtmlib",
+        model_type="body26",
+        export_video=False,
+        export_json=True,
+        export_csv=False
+    )
+
+def calculate_biomarkers(test_type):
+  if video_name is None:
+    #insert run_biomarkers for all landmark files in landmark folder
+
 def train_model(chosen_model):
   print(f"Starting to train model: {chosen_model}")
   data, labels = load_data_with_label(f"{DATA_PATH}/{chosen_model}/training")
