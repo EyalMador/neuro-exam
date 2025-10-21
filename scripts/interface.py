@@ -12,7 +12,7 @@ while True:
 
   if chosen_operation == "train":
     while True:
-      chosen_test = input("Enter requested model to train: ")
+      chosen_test = input("Enter requested test to train: ")
       if chosen_test not in supported_tests:
         print(f"Error: {chosen_test} test not supported.")
       else:
