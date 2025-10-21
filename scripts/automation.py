@@ -60,13 +60,13 @@ def classify_video(test_type, video_name):
     print(e)
   cleanup_folder(WORKING_FOLDER_PATH)
 
-def train_model(test_type):
+def train(test_type):
   print("Starting training process...")
   try:
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
     extract_landmarks(test_type)
     calculate_biomarkers(test_type)
-    train_svm(test_type)
+    train_model(test_type)
     print("Training process finished successfully.")
   except Exception as e:
     print(e)
