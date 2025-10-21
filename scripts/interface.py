@@ -21,7 +21,7 @@ while True:
         print(f"Error: {chosen_model} model not supported.")
       else:
         break
-    filename = input("Enter name of data file: ")
+    filename = input("Enter name of video file: ")
     try:
       predict_result(chosen_model, filename)
     except Exception as e:
