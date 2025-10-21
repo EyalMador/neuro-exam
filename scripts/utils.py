@@ -1,4 +1,4 @@
-import os
+import os, json
 
 def load_data_with_label(path):
   X, y = [], []
@@ -28,19 +28,18 @@ def load_data_with_label(path):
 
 def load_data_no_label(path):
     X = []
+    # Find the only file in the folder
+    filename = next(f for f in os.listdir(path) if f.endswith(".json"))
+    file_path = os.path.join(path, filename)
 
-    with open(path, "r") as f:
+    with open(file_path, "r") as f:
         data = json.load(f)
 
     biomarkers = data.get("biomarkers", {})
-    datapoint = []
-
-    for name, stats in biomarkers.items():
-        datapoint.extend([stats.get("mean", 0), stats.get("std", 0)])
+    datapoint = [v.get(k, 0) for v in biomarkers.values() for k in ("mean", "std")]
 
     X.append(datapoint)
-
-    print(f"Loaded 1 sample with {len(datapoint)} features.")
+    print(f"Loaded '{filename}' with {len(datapoint)} features.")
     return X
 
 def create_temp_folder(paths):
