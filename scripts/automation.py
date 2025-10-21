@@ -1,6 +1,7 @@
 from scripts.utils import *
 import os
 
+MODELS_PATH = "/content/drive/MyDrive/neuro-exam/Models"
 DATA_PATH = '/content/drive/MyDrive/neuro-exam/Data/RawVideos/train'
 WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/temp_script_folder'
 LANDMARKS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Landmarks'
@@ -33,7 +34,7 @@ def calculate_biomarkers(test_type):
 
 def train_model(chosen_model):
   print(f"Starting to train model: {chosen_model}")
-  data, labels = load_data_with_label(f"{DATA_PATH}/{chosen_model}/training")
+  data, labels = load_data_with_label(f"{DATA_PATH}/{chosen_model}/training") #change data path
   model = SVC(kernel='rbf', probability=True)
   model.fit(data, labels)
   dump(model, f"{MODELS_PATH}/{chosen_model}")
@@ -41,7 +42,7 @@ def train_model(chosen_model):
 
 def predict_result(chosen_model, filename):
   model = load(f"{MODELS_PATH}/{chosen_model}")
-  data = load_data_no_label(f"{DATA_PATH}/{chosen_model}/evaluation/{filename}.json")
+  data = load_data_no_label(BIOMARKERS_FOLDER_PATH)
   if model.predict(data) == 1:
     print("Test is normal!")
   else:
