@@ -43,11 +43,11 @@ def load_data_no_label(path):
     print(f"Loaded 1 sample with {len(datapoint)} features.")
     return X
 
-def create_temp_folder():
-  os.makedirs(LANDMARKS_FOLDER_PATH, exist_ok=True)
-  os.makedirs(BIOMARKERS_FOLDER_PATH, exist_ok=True)
-  print("Temporary folder created.")
+def create_temp_folder(paths):
+  for path in paths:
+    os.makedirs(path, exist_ok=True)
+  print("Temporary folders created.")
 
-def cleanup_folder():
-  os.system(f'rm -rf {WORKING_FOLDER_PATH}')
+def cleanup_folder(path):
+  os.system(f'rm -rf {path}')
   print("Temporary folder deleted.")
