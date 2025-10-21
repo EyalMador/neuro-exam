@@ -7,7 +7,7 @@ while True:
   while True:
     chosen_operation = input("Choose train/classify/exit: ")
     if chosen_operation in ["train", "predict", "exit"]:
-      clear_output(wait=True)
+      clear_output(wait=False)
       break
 
   if chosen_operation == "train":
