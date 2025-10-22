@@ -269,6 +269,30 @@ def run_landmarks_gui():
 
     root.mainloop()
 
+def run_extraction_with_args(video_path,output_path, lib, model_type
+        lib = lib_var.get()
+        model_type = model_type_var.get()
+        output_dir = os.path.dirname(output_path)
+        base_name = os.path.splitext(os.path.basename(output_path))[0]
+
+        output_video_dir = os.path.join(output_dir, "")
+        output_json_dir = os.path.join(output_dir, "")
+        #os.makedirs(output_video_dir, exist_ok=True)
+        #os.makedirs(output_json_dir, exist_ok=True)
+
+        output_video_name = f"{base_name}.mp4"
+        output_json_name = f"{base_name}.json"
+        output_csv_name = f"{base_name}.csv"
+
+        print(f"\n--- Processing {base_name} ---")
+
+        try:
+            coords = get_landmarks(lib, model_type, video_path, output_video_dir, output_video_name)
+            save_json(coords, output_json_dir, output_json_name)
+            messagebox.showinfo("Success", f"Extraction complete!\nSaved to:\n{output_dir}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to extract landmarks:\n{e}")
+            raise
 
 if __name__ == "__main__":
     run_landmarks_gui()
