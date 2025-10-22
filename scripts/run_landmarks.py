@@ -269,7 +269,7 @@ def run_landmarks_gui():
 
     root.mainloop()
 
-def run_extraction_with_args(video_path,output_path, lib, model_type)
+def run_extraction_with_args(video_path,output_path, lib, model_type):
         output_dir = os.path.dirname(output_path)
         base_name = os.path.splitext(os.path.basename(output_path))[0]
 
