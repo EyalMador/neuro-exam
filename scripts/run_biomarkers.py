@@ -17,6 +17,10 @@ BIOMARKERS = {
     "Heel To Toe": extract_heel_to_toe_biomarkers
 }
 
+BIOMARKERS_SNAKECASE = {
+    "straight_walk": extract_straight_walk_biomarkers,
+    "heel_to_toe_walk": extract_heel_to_toe_biomarkers
+}
 
 
 def biomarkers_to_json_format(biomarkers, result="normal"):
@@ -68,6 +72,10 @@ def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
     return output_path
 
 
+def run_biomarkers_with_args(test_type, data, BIOMARKERS_FOLDER_PATH, filename):
+    func = BIOMARKERS_SNAKECASE[test_type]
+    func(data, BIOMARKERS_FOLDER_PATH, filename, "")
+    
 def run_biomarkers_gui():
     root = tk.Tk()
     root.title("Run Biomarker Extraction")
