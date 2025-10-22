@@ -61,7 +61,7 @@ def classify_video(test_type, video_name):
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
     extract_landmarks(test_type, video_name)
     calculate_biomarkers(test_type)
-    predict_result(test_type)
+    predict_result(test_type, video_name)
     print("Classification process finished successfully.")
   except Exception as e:
     print(e)
