@@ -1,6 +1,7 @@
 from scripts.utils import *
 import os
 from scripts.run_biomarkers import run_biomarkers_with_args
+from scripts.run_landmarks import run_extraction_with_args
 from sklearn.svm import SVC
 from joblib import dump, load
 import numpy as np
@@ -18,9 +19,9 @@ def extract_landmarks(test_type, video_name=None):
   
   #Extract from single video:
   if video_name is not None:
-    print("Should run landmarks.")
-    #insert run_landmarks for single video
-  
+    video_path = DATA_PATH + '/' + test_type + '/' + video_name
+    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26')
+                             
   #Extract from all videos in folder:
   else:
     run_landmarks_batch(
