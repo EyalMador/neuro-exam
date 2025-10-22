@@ -1,5 +1,6 @@
 from scripts.utils import *
 import os
+from scripts.run_biomarkers import run_biomarkers_with_args
 
 MODELS_PATH = "/content/drive/MyDrive/neuro-exam/Models"
 DATA_PATH = '/content/drive/MyDrive/neuro-exam/Data/RawVideos/train'
@@ -30,7 +31,7 @@ def extract_landmarks(test_type, video_name=None):
 
 def calculate_biomarkers(test_type):
   print("Calculating biomarkers...")
-  #insert run_biomarkers for all landmark files in landmark folder
+  run_biomarkers_with_args(test_type, BIOMARKERS_FOLDER_PATH) #HERE!
 
 def train_model(chosen_model):
   print(f"Starting to train model: {chosen_model}")
