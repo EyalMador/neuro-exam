@@ -34,10 +34,9 @@ def calculate_biomarkers(test_type):
   for filename in os.listdir(LANDMARKS_FOLDER_PATH):
         if filename.endswith(".json"):
             file_path = os.path.join(directory_path, filename)
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                run_biomarkers_with_args(test_type, data, BIOMARKERS_FOLDER_PATH, filename)
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            run_biomarkers_with_args(test_type, data, BIOMARKERS_FOLDER_PATH, filename)
 
 def train_model(chosen_model):
   print(f"Starting to train model: {chosen_model}")
