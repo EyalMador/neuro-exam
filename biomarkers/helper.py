@@ -86,7 +86,8 @@ def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
         filename += '.json'
     
     output_path = os.path.join(output_dir, filename)
-    
+
+    result = 'abnormal' if 'abnormal' in filename else 'normal'
     formatted_data = biomarkers_to_json_format(biomarkers, result)
     
     with open(output_path, 'w') as f:
