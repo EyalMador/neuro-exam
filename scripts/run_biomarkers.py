@@ -75,7 +75,7 @@ def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
 
 def run_biomarkers_with_args(test_type, data, BIOMARKERS_FOLDER_PATH, filename):
     func = BIOMARKERS_SNAKECASE[test_type]
-    func(data, BIOMARKERS_FOLDER_PATH, filename, "")
+    func(data, BIOMARKERS_FOLDER_PATH, filename)
     
 def run_biomarkers_gui():
     root = tk.Tk()
