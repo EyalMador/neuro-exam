@@ -52,7 +52,7 @@ def run_landmarks_batch(
     # Create output directories
     output_video_dir = os.path.join(output_dir, "Video_output")
     output_json_dir = Path(output_dir)
-    #os.makedirs(output_video_dir, exist_ok=True)
+    os.makedirs(output_video_dir, exist_ok=True)
     os.makedirs(output_json_dir, exist_ok=True)
     
     # Get all video files
@@ -280,6 +280,18 @@ def run_landmarks_gui():
 
     root.mainloop()
 
+def run_extraction_with_args(video_path,output_path, lib, model_type, base_name):
+    video_name = base_name.split('.', 1)[0]
+    output_json_name = f"{video_name}.json"
+    output_video_dir = Path(output_path).parent.resolve()
+    
+    print(f"\n--- Processing {base_name} ---")
+
+    try:
+        coords = get_landmarks(lib, model_type, video_path, output_video_dir, base_name)
+        save_json(coords, output_path, output_json_name)
+    except Exception as e:
+        raise
 
 if __name__ == "__main__":
     run_landmarks_gui()

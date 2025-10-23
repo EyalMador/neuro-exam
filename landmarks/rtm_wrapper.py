@@ -105,6 +105,10 @@ class RTMModel:
         frame_num = 0
         print(f"Starting RTMLib processing...")
 
+        from tqdm.notebook import tqdm
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        pbar = tqdm(total=total_frames, desc="Processing frames")
+        
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -122,8 +126,7 @@ class RTMModel:
                 self.video.output_channel.write(frame)
 
             frame_num += 1
-            if frame_num % 10 == 0:
-                print(f"Processed {frame_num} frames")
+            pbar.update(1)
 
 
         cap.release()

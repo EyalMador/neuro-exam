@@ -17,33 +17,13 @@ BIOMARKERS = {
     "Heel To Toe": extract_heel_to_toe_biomarkers
 }
 
+BIOMARKERS_SNAKECASE = {
+    "straight_walk": extract_straight_walk_biomarkers,
+    "heel_to_toe_walk": extract_heel_to_toe_biomarkers
+}
 
 
 def biomarkers_to_json_format(biomarkers, result="normal"):
-    """
-    Convert biomarkers dictionary to standardized JSON format.
-    
-    Parameters:
-    -----------
-    biomarkers : dict
-        Dictionary containing biomarker categories with statistics
-        Example: {
-            "heel_toe_distances": {
-                "left": {"mean": 10.5, "std": 2.3, ...},
-                "right": {"mean": 11.2, "std": 2.1, ...}
-            },
-            "knee_angles": {
-                "left": {"mean": 45.2, "std": 5.1, ...},
-                "right": {"mean": 44.8, "std": 4.9, ...}
-            }
-        }
-    result : str
-        Classification result (e.g., "normal", "abnormal")
-    
-    Returns:
-    --------
-    dict : Formatted dictionary ready for JSON export
-    """
     formatted = {
         "biomarkers": {},
         "result": result
@@ -76,31 +56,13 @@ def biomarkers_to_json_format(biomarkers, result="normal"):
 
 
 def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
-    """
-    Save biomarkers to JSON file in standardized format.
-    
-    Parameters:
-    -----------
-    biomarkers : dict
-        Biomarkers dictionary from extract_*_biomarkers functions
-    output_dir : str
-        Directory to save the JSON file
-    filename : str
-        Name of the output file (with or without .json extension)
-    result : str
-        Classification result
-    
-    Returns:
-    --------
-    str : Path to saved file
-    """
     os.makedirs(output_dir, exist_ok=True)
     
     if not filename.endswith('.json'):
         filename += '.json'
     
     output_path = os.path.join(output_dir, filename)
-    
+    result = 'abnormal' if 'abnormal' in filename else 'normal'
     formatted_data = biomarkers_to_json_format(biomarkers, result)
     
     with open(output_path, 'w') as f:
@@ -110,6 +72,10 @@ def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
     return output_path
 
 
+def run_biomarkers_with_args(test_type, data, BIOMARKERS_FOLDER_PATH, filename):
+    func = BIOMARKERS_SNAKECASE[test_type]
+    func(data, BIOMARKERS_FOLDER_PATH, filename, "")
+    
 def run_biomarkers_gui():
     root = tk.Tk()
     root.title("Run Biomarker Extraction")
