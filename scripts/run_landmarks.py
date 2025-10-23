@@ -272,7 +272,8 @@ def run_landmarks_gui():
 def run_extraction_with_args(video_path,output_path, lib, model_type, base_name):
     base_name = base_name.split('.', 1)[0]
     output_json_name = f"{base_name}.json"
-
+    output_video_dir = Path.resolve(output_path + '/..')
+    
     print(f"\n--- Processing {base_name} ---")
 
     try:
