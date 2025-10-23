@@ -285,8 +285,10 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     """      
 
     biomarkers = {}
-    biomarkers["steps"] = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
+    steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
     biomarkers["knee_angles"] = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
+    biomarkers["steps_size"] = steps_biomarkers["steps_size"]
+    biomarkers["steps_time"] = steps_biomarkers["steps_time"]
 
     helper.plot_biomarkers(biomarkers)
     save_biomarkers_json(biomarkers, output_dir, filename)
