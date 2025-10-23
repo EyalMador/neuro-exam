@@ -2,7 +2,7 @@ import numpy as np
 import biomarkers.helper as helper
 import landmarks.name_conventions as lnc
 import matplotlib.pyplot as plt
-from helper import save_biomarkers_json
+from biomarkers.helper import save_biomarkers_json
 
 
 
