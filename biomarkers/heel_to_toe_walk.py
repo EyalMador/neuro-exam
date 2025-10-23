@@ -62,7 +62,7 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
     return statistics
 
 
-def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename, type_class):
+def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename):
     print(f"{filename} starting")
     rtm_names_landmarks = helper.rtm_indices_to_names(landmarks, lnc.rtm_mapping())
     [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle"])
