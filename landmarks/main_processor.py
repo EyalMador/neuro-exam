@@ -21,12 +21,10 @@ def save_json(video_coords, output_dir=".", output_name="landmarks.json", frame_
     os.makedirs(output_dir, exist_ok=True)
     
     # Create output structure with metadata
-    output_data = {
-        "metadata": {
+    output_data = video_coords
+    output_data["metadata"] = {
             "frame_width": frame_width,
             "frame_height": frame_height,
-        },
-        "landmarks": video_coords
     }
     
     with open(filepath, "w") as f:
