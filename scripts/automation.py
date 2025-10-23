@@ -9,6 +9,7 @@ import json
 
 MODELS_PATH = "/content/drive/MyDrive/neuro-exam/Models"
 DATA_PATH = '/content/drive/MyDrive/neuro-exam/Data/RawVideos/train'
+CLASSIFY_PATH = '/content/drive/MyDrive/neuro-exam/Data/Classify'
 WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/temp_script_folder'
 LANDMARKS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Landmarks'
 BIOMARKERS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Biomarkers'
@@ -19,7 +20,7 @@ def extract_landmarks(test_type, video_name=None):
   
   #Extract from single video:
   if video_name is not None:
-    video_path = DATA_PATH + '/' + test_type + '/' + video_name
+    video_path = CLASSIFY_PATH + '/' + video_name
     run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26')
                              
   #Extract from all videos in folder:
