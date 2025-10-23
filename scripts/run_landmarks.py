@@ -271,21 +271,13 @@ def run_landmarks_gui():
 
 def run_extraction_with_args(video_path,output_path, lib, model_type, base_name):
     base_name = base_name.split('.', 1)[0]
-    output_dir = os.path.dirname(output_path)
-    output_video_dir = os.path.join(output_dir, "")
-    output_json_dir = os.path.join(output_dir, "")
-    #os.makedirs(output_video_dir, exist_ok=True)
-    #os.makedirs(output_json_dir, exist_ok=True)
-
-    output_video_name = f"{base_name}.mp4"
     output_json_name = f"{base_name}.json"
-    output_csv_name = f"{base_name}.csv"
 
     print(f"\n--- Processing {base_name} ---")
 
     try:
         coords = get_landmarks(lib, model_type, video_path, output_video_dir, output_video_name)
-        save_json(coords, output_json_dir, output_json_name)
+        save_json(coords, output_path, output_json_name)
     except Exception as e:
         raise
 
