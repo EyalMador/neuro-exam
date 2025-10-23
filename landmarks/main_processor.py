@@ -32,7 +32,6 @@ def save_json(video_coords, output_dir=".", output_name="landmarks.json", frame_
     with open(filepath, "w") as f:
         json.dump(output_data, f, indent=2)
     print(f"Landmarks saved to {filepath}")
-    print(f"Metadata: {frame_width}x{frame_height}, {output_data['metadata']['total_frames']} frames")
     return filepath
 
 def save_csv(video_coords, output_dir=".", output_name="landmarks.csv"):
