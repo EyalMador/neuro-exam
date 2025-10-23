@@ -21,7 +21,7 @@ def extract_landmarks(test_type, video_name=None):
   #Extract from single video:
   if video_name is not None:
     video_path = CLASSIFY_PATH + '/' + video_name
-    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name)
+    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, WORKING_FOLDER_PATH)
                              
   #Extract from all videos in folder:
   else:
