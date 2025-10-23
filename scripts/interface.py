@@ -4,6 +4,7 @@ from IPython.display import clear_output
 supported_tests = ["straight_walk", "heel_to_toe_walk", "raise_hands", "finger_to_nose"]
 
 def main():
+  clear_output(wait=False)
   while True:
     while True:
       chosen_operation = input("Choose train/classify/exit: ")
