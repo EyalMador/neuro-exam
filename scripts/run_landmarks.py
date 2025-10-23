@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 from landmarks.main_processor import get_landmarks, save_json, save_csv
 from pathlib import Path
+import cv2
 
 
 def run_landmarks_batch(
@@ -78,6 +79,11 @@ def run_landmarks_batch(
         output_video_name = f"{base_name}.mp4"
         output_json_name = f"{base_name}.json"
         output_csv_name = f"{base_name}.csv"
+
+        #get video metadata:
+        cap = cv2.VideoCapture(video_path)
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         
         print(f"\n[{idx}/{len(video_files)}] Processing: {base_name}")
         
@@ -85,7 +91,7 @@ def run_landmarks_batch(
             coords = get_landmarks(lib, model_type, video_path, output_video_dir, output_video_name)
             
             if export_json:
-                save_json(coords, output_json_dir, output_json_name)
+                save_json(coords, output_json_dir, output_json_name, frame_width, frame_height)
                 print(f"  Saved JSON: {output_json_name}")
             
             if export_csv:
@@ -192,13 +198,18 @@ def run_landmarks_gui():
         output_json_name = f"{base_name}.json"
         output_csv_name = f"{base_name}.csv"
 
+        #get video metadata:
+        cap = cv2.VideoCapture(video_path)
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
         print(f"\n--- Processing {base_name} ---")
 
         try:
             coords = get_landmarks(lib, model_type, video_path, output_video_dir, output_video_name)
 
             if export_json_var.get():
-                save_json(coords, output_json_dir, output_json_name)
+                save_json(coords, output_json_dir, output_json_name, frame_width, frame_height)
             if export_csv_var.get():
                 save_csv(coords, output_json_dir, output_csv_name)
 

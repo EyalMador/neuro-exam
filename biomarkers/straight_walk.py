@@ -1,11 +1,60 @@
 import numpy as np
 import biomarkers.helper as helper
 import landmarks.name_conventions as lnc
+import matplotlib.pyplot as plt
+
+
+
+def plot_knee_angles(knee_angles):
+    """
+    Plot knee angles over time for left, right, and all knees.
+    
+    Args:
+        knee_angles: Dictionary with 'left', 'right', and 'all' keys,
+                     each containing frame:angle pairs
+    """
+    plt.figure(figsize=(12, 6))
+    
+    # Plot left knee
+    if 'left' in knee_angles and knee_angles['left']:
+        frames_left = sorted(knee_angles['left'].keys())
+        angles_left = [knee_angles['left'][f] for f in frames_left]
+        plt.plot(frames_left, angles_left, label='Left Knee', marker='o', markersize=3)
+    
+    # Plot right knee
+    if 'right' in knee_angles and knee_angles['right']:
+        frames_right = sorted(knee_angles['right'].keys())
+        angles_right = [knee_angles['right'][f] for f in frames_right]
+        plt.plot(frames_right, angles_right, label='Right Knee', marker='o', markersize=3)
+    
+    # Plot all knees (if different from left/right)
+    if 'all' in knee_angles and knee_angles['all']:
+        frames_all = sorted(knee_angles['all'].keys())
+        angles_all = [knee_angles['all'][f] for f in frames_all]
+        plt.plot(frames_all, angles_all, label='All Knees', marker='o', markersize=3, alpha=0.5)
+    
+    plt.xlabel('Frame')
+    plt.ylabel('Knee Angle (degrees)')
+    plt.title('Knee Angles Over Time')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
 
     
 def is_foot_flat(heel, toe, threshold = 0.5):
-    return abs(heel['y'] - toe['y']) < threshold
+
+    foot_size = foot_size_pixels(heel, toe)
+    print("distance " + str(abs(heel['y'] - toe['y'])))
+    print(f"foot size {foot_size}")
+    return ((abs(heel['y'] - toe['y']) /foot_size) < threshold )
+
+def foot_size_pixels(heel, toe):
+
+    heel_np = np.array([heel['x'], heel['y']])
+    toe_np = np.array([toe['x'], toe['y']])
+    return np.linalg.norm(heel_np - toe_np)
 
 def detect_steps(left_heel, left_toe, right_heel, right_toe):
     frames = range(len(left_heel))
@@ -19,22 +68,30 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
                                       ('right', right_heel, right_toe)]:
         in_step = False
         step_start = None
-        
-        for _, frame in enumerate(frames):
+
+        """ 
+        gaps = [abs(heel[str(frame)]['y'] - toe[str(frame)]['y']) for frame in frames]
+        non_zero_gaps = [gap for gap in gaps if gap > 0]
+        #min_gap = min(non_zero_gaps) if non_zero_gaps else 0
+        min_gap = 0
+        print(f'min gap {min_gap}')
+
+        """
+
+        for frame in frames:
             frame_str = str(frame)
-            
-            if frame_str not in heel or frame_str not in toe:
-                continue
-                
+
             heel_coords = heel[frame_str]
             toe_coords = toe[frame_str]
             
-            foot_is_flat = is_foot_flat(heel_coords, toe_coords, 0.3)
+
+            foot_is_flat = is_foot_flat(heel_coords, toe_coords, 0.25)
             
             #step start
             if not foot_is_flat and not in_step:
                 in_step = True
                 step_start = frame
+                print(f"start step frame: {frame_str}")
 
             #step end
             elif foot_is_flat and in_step:
@@ -42,7 +99,8 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
                 if step_start is not None:
                     steps[foot].append((step_start, frame))
                 step_start = None
-    
+                print(f"end step frame: {frame_str}")
+
     return steps
 
 
@@ -55,14 +113,15 @@ def stride_lengths(heel, steps, foot):
     
     for i in range(len(foot_steps) - 1):
         frame1 = str(foot_steps[i][0])
-        frame2 = str(foot_steps[i + 1][0])
+        #frame2 = str(foot_steps[i + 1][0]) #todo: i or i++ ?
+        frame2 = str(foot_steps[i][1])
         
         if frame1 in heel and frame2 in heel:
             heel1 = heel[frame1]
             heel2 = heel[frame2]
             
-            h1 = np.array([heel1['x'], 0, heel1['z']])
-            h2 = np.array([heel2['x'], 0, heel2['z']])
+            h1 = np.array([heel1['x'], 0, 0])
+            h2 = np.array([heel2['x'], 0, 0])
 
             stride_length = np.linalg.norm(h2 - h1)
             stride_lengths.append(stride_length)
@@ -180,6 +239,7 @@ def calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, rig
 def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
 
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
+    # plot_knee_angles(knee_angles)
     minimum_angles = helper.datapoints_local_minimums(knee_angles)
 
     all_angles = knee_angles['all']
@@ -211,6 +271,17 @@ def extract_straight_walk_biomarkers(landmarks, fps):
     rtm_names_landmarks = helper.rtm_indices_to_names(landmarks, lnc.rtm_mapping())
     [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle"])
 
+    """"
+    landmarks_metadata = {}
+    if 'metadata' not in (landmarks.keys()):
+        landmarks_metadata['frame_width'] = 1080
+        landmarks_metadata['frame_height'] = 1920
+
+    else:
+        landmarks_metadata['frame_width'] = landmarks['frame_width']
+        landmarks_metadata['frame_height'] = landmarks['frame_height'] 
+
+    """      
 
     biomarkers = {}
     biomarkers["steps"] = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)

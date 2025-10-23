@@ -15,13 +15,24 @@ def get_video(path):
     else:
         raise FileNotFoundError(f"Video not found at {path}")
     
-def save_json(video_coords, output_dir=".", output_name="landmarks.jsonz"):
-    """Save landmarks dictionary to JSON file."""
+def save_json(video_coords, output_dir=".", output_name="landmarks.json", frame_width=1080, frame_height=1920):
+    """Save landmarks dictionary to JSON file with metadata."""
     filepath = os.path.join(output_dir, output_name)
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Create output structure with metadata
+    output_data = {
+        "metadata": {
+            "frame_width": frame_width,
+            "frame_height": frame_height,
+        },
+        "landmarks": video_coords
+    }
+    
     with open(filepath, "w") as f:
-        json.dump(video_coords, f, indent=2)
+        json.dump(output_data, f, indent=2)
     print(f"Landmarks saved to {filepath}")
+    print(f"Metadata: {frame_width}x{frame_height}, {output_data['metadata']['total_frames']} frames")
     return filepath
 
 def save_csv(video_coords, output_dir=".", output_name="landmarks.csv"):
