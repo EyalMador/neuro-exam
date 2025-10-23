@@ -270,6 +270,7 @@ def run_landmarks_gui():
     root.mainloop()
 
 def run_extraction_with_args(video_path,output_path, lib, model_type, base_name):
+    base_name = base_name.split('.', 1)[0]
     output_dir = os.path.dirname(output_path)
     output_video_dir = os.path.join(output_dir, "")
     output_json_dir = os.path.join(output_dir, "")
