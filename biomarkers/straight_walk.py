@@ -2,6 +2,7 @@ import numpy as np
 import biomarkers.helper as helper
 import landmarks.name_conventions as lnc
 import matplotlib.pyplot as plt
+from helper import save_biomarkers_json
 
 
 
@@ -267,7 +268,7 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
     return statistics
 
 
-def extract_straight_walk_biomarkers(landmarks, fps):
+def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     rtm_names_landmarks = helper.rtm_indices_to_names(landmarks, lnc.rtm_mapping())
     [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle"])
 
@@ -288,6 +289,8 @@ def extract_straight_walk_biomarkers(landmarks, fps):
     biomarkers["knee_angles"] = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
 
     helper.plot_biomarkers(biomarkers)
+    save_biomarkers_json(biomarkers, output_dir, filename)
+
     return biomarkers
 
 
