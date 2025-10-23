@@ -287,9 +287,7 @@ def run_extraction_with_args(video_path,output_path, lib, model_type):
     try:
         coords = get_landmarks(lib, model_type, video_path, output_video_dir, output_video_name)
         save_json(coords, output_json_dir, output_json_name)
-        messagebox.showinfo("Success", f"Extraction complete!\nSaved to:\n{output_dir}")
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to extract landmarks:\n{e}")
         raise
 
 if __name__ == "__main__":
