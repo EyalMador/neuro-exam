@@ -262,8 +262,9 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
                 'count': len(side_minimums),
                 'all': side_minimums,
 
-
             }
+    statistics['symmetry_score'] = helper.calc_symmetry(statistics['left'], statistics['right'])
+
         
     return statistics
 
@@ -271,18 +272,7 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
 def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     rtm_names_landmarks = helper.rtm_indices_to_names(landmarks, lnc.rtm_mapping())
     [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle"])
-
-    """"
-    landmarks_metadata = {}
-    if 'metadata' not in (landmarks.keys()):
-        landmarks_metadata['frame_width'] = 1080
-        landmarks_metadata['frame_height'] = 1920
-
-    else:
-        landmarks_metadata['frame_width'] = landmarks['frame_width']
-        landmarks_metadata['frame_height'] = landmarks['frame_height'] 
-
-    """      
+    
 
     biomarkers = {}
     steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
@@ -291,11 +281,9 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers["step_size"] = steps_biomarkers["step_size"]
     biomarkers["step_time"] = steps_biomarkers["step_time"]
 
-
     biomarkers['knee_angles_left'] = knee_biomarkers['left']
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
-
-
+    biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
 
     helper.plot_biomarkers(biomarkers)
     save_biomarkers_json(biomarkers, output_dir, filename)

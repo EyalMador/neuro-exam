@@ -58,19 +58,29 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
                 'all_distances': distance_data
 
             }
+    statistics['symmetry_score'] = helper.calc_symmetry(statistics['left'], statistics['right'])
         
     return statistics
 
 
 def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename):
-    print(f"{filename} starting")
+
     rtm_names_landmarks = helper.rtm_indices_to_names(landmarks, lnc.rtm_mapping())
     [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle"])
-    print(f"{filename} finished")
+
     
     biomarkers = {}
-    biomarkers["heel_toe_distances"] = local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_toe)
-    biomarkers["knee_angles"] = sw.knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
+    htt_distances = local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_toe)
+    knee_biomarkers = sw.knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
+
+    biomarkers["htt_distances_left"] = htt_distances['left']
+    biomarkers["htt_distances_right"] = htt_distances['right']
+    biomarkers["htt_distances_symmetry"] = htt_distances['symmetry_score']
+
+
+    biomarkers['knee_angles_left'] = knee_biomarkers['left']
+    biomarkers['knee_angles_right'] = knee_biomarkers['right']
+    biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
 
     helper.plot_biomarkers(biomarkers, "heel_to_toe")
     save_biomarkers_json(biomarkers, output_dir, filename)

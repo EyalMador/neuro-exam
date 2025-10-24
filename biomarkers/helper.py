@@ -7,49 +7,43 @@ import json, os
 
 
 def biomarkers_to_json_format(biomarkers, result="normal"):
-    """
-    Convert biomarkers dictionary to standardized JSON format.
-    
-    Parameters:
-    -----------
-    biomarkers : dict
-        Dictionary containing biomarker categories with statistics
-        Example: {
-            "heel_toe_distances": {
-                "left": {"mean": 10.5, "std": 2.3, ...},
-                "right": {"mean": 11.2, "std": 2.1, ...}
-            },
-            "knee_angles": {
-                "left": {"mean": 45.2, "std": 5.1, ...},
-                "right": {"mean": 44.8, "std": 4.9, ...}
-            }
-        }
-    result : str
-        Classification result (e.g., "normal", "abnormal")
-    
-    Returns:
-    --------
-    dict : Formatted dictionary ready for JSON export
-    """
     formatted = {
         "biomarkers": {},
         "label": result
     }
-    
+
     biomarker_counter = 1
-    
+
     for category_name, category_data in biomarkers.items():
+        # Case 1: flat biomarker (not a nested category)
+        if isinstance(category_data, dict):
+            # If it contains statistical fields (mean/std or similar), copy all keys
+            if any(isinstance(v, (int, float, str)) for v in category_data.values()):
+                formatted["biomarkers"][category_name] = {}
+                for k, v in category_data.items():
+                    formatted["biomarkers"][category_name][k] = (
+                        round(v, 2) if isinstance(v, (int, float)) else v
+                    )
+                biomarker_counter += 1
+                continue
+
+        # Case 2: scalar biomarker
+        if isinstance(category_data, (int, float, str)):
+            formatted["biomarkers"][category_name] = (
+                round(category_data, 2) if isinstance(category_data, (int, float)) else category_data
+            )
+            biomarker_counter += 1
+            continue
+
+        # Case 3: nested category
         if not isinstance(category_data, dict):
             continue
-        
-        # Handle different nesting structures
+
         for key, value in category_data.items():
-            # Skip non-statistical keys
-            if key in ['all', 'all_distances', 'min_frames', 'min_values', 
-                      'min_indices', 'smoothed_distances', 'properties', 'count']:
+            if key in ['all', 'all_distances', 'min_frames', 'min_values',
+                       'min_indices', 'smoothed_distances', 'properties', 'count']:
                 continue
-            
-            # If value is a dict with mean/std, extract it
+
             if isinstance(value, dict) and ('mean' in value or 'std' in value):
                 biomarker_name = f"{category_name}_{key}"
                 formatted["biomarkers"][biomarker_name] = {
@@ -57,8 +51,9 @@ def biomarkers_to_json_format(biomarkers, result="normal"):
                     "std": round(value.get('std', 0), 2)
                 }
                 biomarker_counter += 1
-    
+
     return formatted
+
 
 
 def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
@@ -87,11 +82,9 @@ def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
     
     output_path = os.path.join(output_dir, filename)
 
-    print(biomarkers)
-    
     result = 'abnormal' if 'abnormal' in filename else 'normal'
     formatted_data = biomarkers_to_json_format(biomarkers, result)
-    print(formatted_data)
+    
     with open(output_path, 'w') as f:
         json.dump(formatted_data, f, indent=2)
     
@@ -269,6 +262,32 @@ def datapoints_local_minimums(data, prominence=0.01, distance=10,
         }
     
     return minimums
+
+
+def calc_symmetry(left_stats, right_stats, max_asymmetry_percent=50):
+
+    if left_stats['count'] == 0 or right_stats['count'] == 0:
+        return None
+
+    left_mean = left_stats['mean']
+    right_mean = right_stats['mean']
+
+    if left_mean is None or right_mean is None:
+        return None
+
+    # Calculate Symmetry Index
+    avg = (left_mean + right_mean) / 2
+    if avg == 0:
+        return None
+
+    symmetry_index = (abs(left_mean - right_mean) / avg) * 100
+
+    # Convert to 0-1 score
+    # SI = 0% -> score = 1.0
+    # SI = max_asymmetry_percent -> score = 0.0
+    symmetry_score = max(0.0, min(1.0, 1 - (symmetry_index / max_asymmetry_percent)))
+
+    return float(symmetry_score)
 
 
 
