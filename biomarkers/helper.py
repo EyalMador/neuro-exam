@@ -11,27 +11,30 @@ import numpy as np
 import os
 import json
 
-def biomarkers_to_json_format(biomarkers, label, save_path):
+def biomarkers_to_json_format(biomarkers, result="normal"):
+    formatted = {
+        "biomarkers": {},
+        "label": result
+    }
 
-    formatted = {"biomarkers": {}, "label": label}
+    biomarker_counter = 1
 
-    for name, value in biomarkers.items():
-        # Case 1: dict with mean/std
-        if isinstance(value, dict) and ('mean' in value or 'std' in value):
-            formatted["biomarkers"][name] = {
-                "mean": round(value.get("mean", 0), 2),
-                "std": round(value.get("std", 0), 2)
+    for category_name, category_data in biomarkers.items():
+        # Keep dicts with mean/std only
+        if isinstance(category_data, dict) and ('mean' in category_data or 'std' in category_data):
+            formatted["biomarkers"][category_name] = {
+                "mean": round(category_data.get("mean", 0), 2),
+                "std": round(category_data.get("std", 0), 2)
             }
-        # Case 2: single numeric value
-        elif isinstance(value, (int, float)):
-            formatted["biomarkers"][name] = round(value, 2)
+            biomarker_counter += 1
+        # Keep single numeric values
+        elif isinstance(category_data, (int, float)):
+            formatted["biomarkers"][category_name] = round(category_data, 2)
+            biomarker_counter += 1
+        # ignore everything else
 
-    # Save to JSON
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    with open(save_path, "w") as f:
-        json.dump(formatted, f, indent=2)
+    return formatted
 
-    print(f"Biomarkers saved to: {save_path}")
 
 
 
