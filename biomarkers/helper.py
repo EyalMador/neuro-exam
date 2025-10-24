@@ -11,7 +11,7 @@ import numpy as np
 import os
 import json
 
-def save_biomarkers_filtered(biomarkers, label, save_path):
+def biomarkers_to_json_format(biomarkers, label, save_path):
 
     formatted = {"biomarkers": {}, "label": label}
 
