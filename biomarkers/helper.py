@@ -8,74 +8,31 @@ import json, os
 
 import numpy as np
 
-def biomarkers_to_json_format(biomarkers, result="normal"):
-    formatted = {
-        "biomarkers": {},
-        "label": result
-    }
+import os
+import json
 
-    biomarker_counter = 1
+def save_biomarkers_filtered(biomarkers, label, save_path):
 
-    for category_name, category_data in biomarkers.items():
-        # Case 1: flat biomarker (not a nested category)
-        if isinstance(category_data, dict):
-            # If it contains statistical fields (mean/std or similar), copy all keys
-            if any(isinstance(v, (int, float, str, np.number)) for v in category_data.values()):
-                formatted["biomarkers"][category_name] = {}
-                for k, v in category_data.items():
-                    # Convert numpy types to Python types
-                    if isinstance(v, np.ndarray):
-                        v = v.tolist()  # Convert array to list
-                    elif isinstance(v, np.number):
-                        v = v.item()  # Convert numpy scalar to Python scalar
-                    
-                    formatted["biomarkers"][category_name][k] = (
-                        round(v, 2) if isinstance(v, (int, float)) else v
-                    )
-                biomarker_counter += 1
-                continue
+    formatted = {"biomarkers": {}, "label": label}
 
-        # Case 2: scalar biomarker
-        if isinstance(category_data, (int, float, str, np.number)):
-            # Convert numpy types
-            if isinstance(category_data, np.number):
-                category_data = category_data.item()
-            
-            formatted["biomarkers"][category_name] = (
-                round(category_data, 2) if isinstance(category_data, (int, float)) else category_data
-            )
-            biomarker_counter += 1
-            continue
+    for name, value in biomarkers.items():
+        # Case 1: dict with mean/std
+        if isinstance(value, dict) and ('mean' in value or 'std' in value):
+            formatted["biomarkers"][name] = {
+                "mean": round(value.get("mean", 0), 2),
+                "std": round(value.get("std", 0), 2)
+            }
+        # Case 2: single numeric value
+        elif isinstance(value, (int, float)):
+            formatted["biomarkers"][name] = round(value, 2)
 
-        # Case 3: nested category
-        if not isinstance(category_data, dict):
-            continue
+    # Save to JSON
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    with open(save_path, "w") as f:
+        json.dump(formatted, f, indent=2)
 
-        for key, value in category_data.items():
-            if key in ['all', 'all_distances', 'min_frames', 'min_values',
-                       'min_indices', 'smoothed_distances', 'properties', 'count']:
-                continue
+    print(f"Biomarkers saved to: {save_path}")
 
-            if isinstance(value, dict) and ('mean' in value or 'std' in value):
-                biomarker_name = f"{category_name}_{key}"
-                
-                # Extract and convert mean/std
-                mean_val = value.get('mean', 0)
-                std_val = value.get('std', 0)
-                
-                # Convert numpy types
-                if isinstance(mean_val, np.number):
-                    mean_val = mean_val.item()
-                if isinstance(std_val, np.number):
-                    std_val = std_val.item()
-                
-                formatted["biomarkers"][biomarker_name] = {
-                    "mean": round(mean_val, 2) if mean_val is not None else None,
-                    "std": round(std_val, 2) if std_val is not None else None
-                }
-                biomarker_counter += 1
-
-    return formatted
 
 
 
