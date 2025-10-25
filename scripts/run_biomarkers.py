@@ -12,71 +12,13 @@ from biomarkers.heel_to_toe_walk import extract_heel_to_toe_biomarkers
 
 
 BIOMARKERS = {
-    # "Finger to Nose": extract_finger_to_nose_biomarkers,
+     "Finger to Nose": extract_finger_to_nose_biomarkers,
     "Straight Walk": extract_straight_walk_biomarkers,
     "Heel To Toe": extract_heel_to_toe_biomarkers
 }
 
-BIOMARKERS_SNAKECASE = {
-    "straight_walk": extract_straight_walk_biomarkers,
-    "heel_to_toe_walk": extract_heel_to_toe_biomarkers
-}
 
 
-def biomarkers_to_json_format(biomarkers, result="normal"):
-    formatted = {
-        "biomarkers": {},
-        "result": result
-    }
-    
-    biomarker_counter = 1
-    
-    for category_name, category_data in biomarkers.items():
-        if not isinstance(category_data, dict):
-            continue
-        
-        # Handle different nesting structures
-        for key, value in category_data.items():
-            # Skip non-statistical keys
-            if key in ['all', 'all_distances', 'min_frames', 'min_values', 
-                      'min_indices', 'smoothed_distances', 'properties', 'count']:
-                continue
-            
-            # If value is a dict with mean/std, extract it
-            if isinstance(value, dict) and ('mean' in value or 'std' in value):
-                biomarker_name = f"b{biomarker_counter}"
-                formatted["biomarkers"][biomarker_name] = {
-                    "name": f"{category_name}_{key}",
-                    "mean": round(value.get('mean', 0), 2),
-                    "std": round(value.get('std', 0), 2)
-                }
-                biomarker_counter += 1
-    
-    return formatted
-
-
-def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
-    os.makedirs(output_dir, exist_ok=True)
-    
-    if not filename.endswith('.json'):
-        filename += '.json'
-    
-    output_path = os.path.join(output_dir, filename)
-    result = 'abnormal' if 'abnormal' in filename else 'normal'
-    print(f'{filename}: {result}')
-    formatted_data = biomarkers_to_json_format(biomarkers, result)
-    
-    with open(output_path, 'w') as f:
-        json.dump(formatted_data, f, indent=2)
-    
-    print(f"Biomarkers saved to: {output_path}")
-    return output_path
-
-
-def run_biomarkers_with_args(test_type, data, BIOMARKERS_FOLDER_PATH, filename):
-    func = BIOMARKERS_SNAKECASE[test_type]
-    func(data, BIOMARKERS_FOLDER_PATH, filename)
-    
 def run_biomarkers_gui():
     root = tk.Tk()
     root.title("Run Biomarker Extraction")
