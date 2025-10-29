@@ -8,7 +8,7 @@ import numpy as np
 import json
 
 MODELS_PATH = "/content/drive/MyDrive/neuro-exam/Models"
-DATA_PATH = '/content/drive/MyDrive/neuro-exam/Data/RawVideos/train'
+DATA_PATH = '/content/drive/MyDrive/neuro-exam/Data'
 CLASSIFY_PATH = '/content/drive/MyDrive/neuro-exam/Data/Classify'
 WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/temp_script_folder'
 LANDMARKS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Landmarks'
