@@ -63,7 +63,7 @@ def classify_video(test_type, video_name):
   print("Starting classification process...")
   try:
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-    extract_landmarks(test_type, is_test=True, video_name)
+    extract_landmarks(test_type, True, video_name)
     calculate_biomarkers(test_type)
     result = predict_result(test_type, video_name)
     if result == 1:
