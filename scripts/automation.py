@@ -105,6 +105,9 @@ def test(test_type):
       true_label = 0 if "abnormal" in filename else 1
       if result == true_label:
         correct_test_count += 1
+        print(f"Model predicted correctly! For file {filename} model: {result} truth: {true_label}")
+      else:
+        print(f"Model predicted falsely! For file {filename} model: {result} truth: {true_label}")
       test_count += 1
       cleanup_folder(WORKING_FOLDER_PATH)
     print("Testing process finished successfully.")
