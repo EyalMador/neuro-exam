@@ -6,32 +6,48 @@ from sklearn.svm import SVC
 from joblib import dump, load
 import numpy as np
 import json
+import datetime
 
 MODELS_PATH = "/content/drive/MyDrive/neuro-exam/Models"
 DATA_PATH = '/content/drive/MyDrive/neuro-exam/Data'
 CLASSIFY_PATH = '/content/drive/MyDrive/neuro-exam/Data/Classify'
-WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/temp_script_folder'
-LANDMARKS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Landmarks'
-BIOMARKERS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Biomarkers'
+WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/Run_Files'
+LANDMARKS_FOLDER_PATH = ''
+BIOMARKERS_FOLDER_PATH = ''
 
+def get_id():
+  now = datetime.datetime.now()
+  return now.strftime("%Y_%m_%d_%H_%M_%S")
+  
+def set_paths(id):
+  global LANDMARKS_FOLDER_PATH
+  global BIOMARKERS_FOLDER_PATH 
+  LANDMARKS_FOLDER_PATH = WORKING_FOLDER_PATH + f'/{id}' + '/Landmarks'
+  BIOMARKERS_FOLDER_PATH = WORKING_FOLDER_PATH + f'/{id}' + '/Biomarkers'
+  
 def extract_landmarks(test_type, is_test, video_name=None):
   from scripts.run_landmarks import run_landmarks_batch
   print("Extracting landmarks...")
   
-  #Extract from single video:
-  if video_name is not None:
+  #Classify:
+  if video_name is not None and not is_test:
     video_path = CLASSIFY_PATH + '/' + video_name
-    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, WORKING_FOLDER_PATH)
-                             
-  #Extract from all videos in folder:
-  else:
-    input_dir = f"{DATA_PATH}/{test_type}/test" if is_test else f"{DATA_PATH}/{test_type}/train"
+    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, LANDMARKS_FOLDER_PATH)
+
+  #Test:
+  if video_name is not None and is_test:
+    video_path = DATA_PATH + f'/{test_type}' + '/test' + f'/{video_name}'
+    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, LANDMARKS_FOLDER_PATH)
+    
+  #Train:
+  if video_name is None:
+    input_dir = f"{DATA_PATH}/{test_type}/train"
     run_landmarks_batch(
         input_dir=input_dir,
         output_dir=LANDMARKS_FOLDER_PATH,
         lib="rtmlib",
         model_type="body26",
-        export_video=False,
+        export_video=True,
         export_json=True,
         export_csv=False
     )
@@ -54,18 +70,20 @@ def train_model(chosen_model):
   dump(model, f"{MODELS_PATH}/{chosen_model}")
   print(f"Successfully trained and saved model: {chosen_model}")
 
-def predict_result(chosen_model, filename):
+def predict_result(chosen_model):
   model = load(f"{MODELS_PATH}/{chosen_model}")
   data = load_data_no_label(BIOMARKERS_FOLDER_PATH)
-  return model.predict(data)
+  return model.predict(data)[0]
     
 def classify_video(test_type, video_name):
   print("Starting classification process...")
+  id = get_id()
+  set_paths(id)
   try:
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-    extract_landmarks(test_type, True, video_name)
+    extract_landmarks(test_type, False, video_name)
     calculate_biomarkers(test_type)
-    result = predict_result(test_type, video_name)
+    result = predict_result(test_type)
     if result == 1:
       print("Test is normal!")
     else:
@@ -73,10 +91,12 @@ def classify_video(test_type, video_name):
     print("Classification process finished successfully.")
   except Exception as e:
     print(e)
-  cleanup_folder(WORKING_FOLDER_PATH)
+  #cleanup_folder(WORKING_FOLDER_PATH)
 
 def train(test_type):
   print("Starting training process...")
+  id = get_id()
+  set_paths(id)
   try:
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
     extract_landmarks(test_type, is_test=False)
@@ -85,7 +105,7 @@ def train(test_type):
     print("Training process finished successfully.")
   except Exception as e:
     print(e)
-  cleanup_folder(WORKING_FOLDER_PATH)
+  #cleanup_folder(WORKING_FOLDER_PATH)
 
 def train_over_landmarks(test_type):
     print("Starting training process...")
@@ -98,4 +118,30 @@ def train_over_landmarks(test_type):
       print(e)
     cleanup_folder(WORKING_FOLDER_PATH)
 
-
+def test(test_type):
+  test_count = 0
+  correct_test_count = 0
+  print("Starting testing process...")
+  id = get_id()
+  set_paths(id)
+  try:
+    for filename in os.listdir(f"{DATA_PATH}/{test_type}/test"):
+      set_paths(id + '/' + filename)
+      create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
+      extract_landmarks(test_type, True, filename)
+      calculate_biomarkers(test_type)
+      result = predict_result(test_type)
+      true_label = 0 if "abnormal" in filename else 1
+      if result == true_label:
+        correct_test_count += 1
+        print(f"Model predicted correctly! For file {filename} model: {result} truth: {true_label}")
+      else:
+        print(f"Model predicted falsely! For file {filename} model: {result} truth: {true_label}")
+      test_count += 1
+      #cleanup_folder(WORKING_FOLDER_PATH)
+    print("Testing process finished successfully.")
+    accuracy = round((correct_test_count / test_count) * 100, 2)
+    print(f"Successful prediction in {correct_test_count}/{test_count} tests. Accuracy: {accuracy}%")
+  except Exception as e:
+    print(e)
+  #cleanup_folder(WORKING_FOLDER_PATH)
