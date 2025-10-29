@@ -18,13 +18,18 @@ def extract_landmarks(test_type, is_test, video_name=None):
   from scripts.run_landmarks import run_landmarks_batch
   print("Extracting landmarks...")
   
-  #Extract from single video:
-  if video_name is not None:
+  #Classify:
+  if video_name is not None and not is_test:
     video_path = CLASSIFY_PATH + '/' + video_name
     run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, WORKING_FOLDER_PATH)
-                             
-  #Extract from all videos in folder:
-  else:
+
+  #Test:
+  if video_name is not None and is_test:
+    video_path = DATA_PATH + f'/{test_type}' + f'/{video_name}'
+    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, WORKING_FOLDER_PATH)
+    
+  #Train:
+  if video_name is None:
     input_dir = f"{DATA_PATH}/{test_type}/test" if is_test else f"{DATA_PATH}/{test_type}/train"
     run_landmarks_batch(
         input_dir=input_dir,
@@ -63,7 +68,7 @@ def classify_video(test_type, video_name):
   print("Starting classification process...")
   try:
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-    extract_landmarks(test_type, True, video_name)
+    extract_landmarks(test_type, False, video_name)
     calculate_biomarkers(test_type)
     result = predict_result(test_type, video_name)
     if result == 1:
@@ -92,11 +97,19 @@ def test(test_type):
   correct_test_count = 0
   print("Starting testing process...")
   try:
-    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-    extract_landmarks(test_type, is_test=True)
-    calculate_biomarkers(test_type)
-    train_model(test_type)
-    print("Training process finished successfully.")
+    for filename in os.listdir(f"{DATA_PATH}/{test_type}/test"):
+      create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
+      extract_landmarks(test_type, is_test=True, filename)
+      calculate_biomarkers(test_type)
+      result = predict_result(test_type, filename)
+      true_label = 0 if "abnormal" in filename else 1
+      if result == true_label:
+        correct_test_count += 1
+      test_count += 1
+      cleanup_folder(WORKING_FOLDER_PATH)
+    print("Testing process finished successfully.")
+    accuracy = round((correct_test_count / test_count) * 100, 2)
+    print(f"Successful prediction in {correct_test_count}/{test_count} tests. Accuracy: {accuracy}%")
   except Exception as e:
     print(e)
   cleanup_folder(WORKING_FOLDER_PATH)
