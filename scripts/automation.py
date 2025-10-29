@@ -6,7 +6,7 @@ from sklearn.svm import SVC
 from joblib import dump, load
 import numpy as np
 import json
-import time
+import datetime
 
 MODELS_PATH = "/content/drive/MyDrive/neuro-exam/Models"
 DATA_PATH = '/content/drive/MyDrive/neuro-exam/Data'
@@ -15,6 +15,10 @@ WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/Run_Files'
 LANDMARKS_FOLDER_PATH = ''
 BIOMARKERS_FOLDER_PATH = ''
 
+def get_id():
+  now = datetime.datetime.now()
+  return now.strftime("%Y_%m_%d_%H_%M_%S")
+  
 def set_paths(id):
   global LANDMARKS_FOLDER_PATH
   global BIOMARKERS_FOLDER_PATH 
@@ -73,7 +77,7 @@ def predict_result(chosen_model):
     
 def classify_video(test_type, video_name):
   print("Starting classification process...")
-  id = int(time.time())
+  id = get_id()
   set_paths(id)
   try:
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
@@ -91,7 +95,7 @@ def classify_video(test_type, video_name):
 
 def train(test_type):
   print("Starting training process...")
-  id = int(time.time())
+  id = get_id()
   set_paths(id)
   try:
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
@@ -107,11 +111,11 @@ def test(test_type):
   test_count = 0
   correct_test_count = 0
   print("Starting testing process...")
-  id = int(time.time())
+  id = get_id()
   set_paths(id)
   try:
     for filename in os.listdir(f"{DATA_PATH}/{test_type}/test"):
-      set_paths(str(id) + '/' + filename)
+      set_paths(id + '/' + filename)
       create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
       extract_landmarks(test_type, True, filename)
       calculate_biomarkers(test_type)
