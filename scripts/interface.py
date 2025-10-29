@@ -7,7 +7,7 @@ def main():
   clear_output(wait=False)
   while True:
     while True:
-      chosen_operation = input("Choose train/classify/exit: ")
+      chosen_operation = input("Choose train/classify/test/exit: ")
       if chosen_operation in ["train", "classify", "exit", "test"]:
         if not chosen_operation == "exit":
           clear_output(wait=False)
