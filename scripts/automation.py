@@ -32,12 +32,12 @@ def extract_landmarks(test_type, is_test, video_name=None):
   #Classify:
   if video_name is not None and not is_test:
     video_path = CLASSIFY_PATH + '/' + video_name
-    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, WORKING_FOLDER_PATH)
+    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, LANDMARKS_FOLDER_PATH)
 
   #Test:
   if video_name is not None and is_test:
     video_path = DATA_PATH + f'/{test_type}' + '/test' + f'/{video_name}'
-    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, WORKING_FOLDER_PATH)
+    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, LANDMARKS_FOLDER_PATH)
     
   #Train:
   if video_name is None:
