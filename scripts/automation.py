@@ -74,7 +74,7 @@ def classify_video(test_type, video_name):
   id = int(time.time())
   set_paths(id)
   try:
-    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH], id)
+    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
     extract_landmarks(test_type, False, video_name)
     calculate_biomarkers(test_type)
     result = predict_result(test_type)
@@ -92,7 +92,7 @@ def train(test_type):
   id = int(time.time())
   set_paths(id)
   try:
-    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH], id)
+    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
     extract_landmarks(test_type, is_test=False)
     calculate_biomarkers(test_type)
     train_model(test_type)
@@ -110,7 +110,7 @@ def test(test_type):
   try:
     for filename in os.listdir(f"{DATA_PATH}/{test_type}/test"):
       set_paths(str(id) + '/' + filename)
-      create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH], id)
+      create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
       extract_landmarks(test_type, True, filename)
       calculate_biomarkers(test_type)
       result = predict_result(test_type)
