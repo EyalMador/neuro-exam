@@ -6,14 +6,19 @@ from sklearn.svm import SVC
 from joblib import dump, load
 import numpy as np
 import json
+import time
 
 MODELS_PATH = "/content/drive/MyDrive/neuro-exam/Models"
 DATA_PATH = '/content/drive/MyDrive/neuro-exam/Data'
 CLASSIFY_PATH = '/content/drive/MyDrive/neuro-exam/Data/Classify'
-WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/temp_script_folder'
-LANDMARKS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Landmarks'
-BIOMARKERS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Biomarkers'
+WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/Run_Files'
+LANDMARKS_FOLDER_PATH = ''
+BIOMARKERS_FOLDER_PATH = ''
 
+def set_paths(id):
+  LANDMARKS_FOLDER_PATH = WORKING_FOLDER_PATH + f'/{id}' + '/Landmarks'
+  BIOMARKERS_FOLDER_PATH = WORKING_FOLDER_PATH + f'/{id}' + '/Biomarkers'
+  
 def extract_landmarks(test_type, is_test, video_name=None):
   from scripts.run_landmarks import run_landmarks_batch
   print("Extracting landmarks...")
@@ -36,7 +41,7 @@ def extract_landmarks(test_type, is_test, video_name=None):
         output_dir=LANDMARKS_FOLDER_PATH,
         lib="rtmlib",
         model_type="body26",
-        export_video=False,
+        export_video=True,
         export_json=True,
         export_csv=False
     )
@@ -66,8 +71,10 @@ def predict_result(chosen_model):
     
 def classify_video(test_type, video_name):
   print("Starting classification process...")
+  id = int(time.time())
+  set_paths(id)
   try:
-    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
+    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH], id)
     extract_landmarks(test_type, False, video_name)
     calculate_biomarkers(test_type)
     result = predict_result(test_type)
@@ -82,8 +89,10 @@ def classify_video(test_type, video_name):
 
 def train(test_type):
   print("Starting training process...")
+  id = int(time.time())
+  set_paths(id)
   try:
-    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
+    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH], id)
     extract_landmarks(test_type, is_test=False)
     calculate_biomarkers(test_type)
     train_model(test_type)
@@ -96,9 +105,11 @@ def test(test_type):
   test_count = 0
   correct_test_count = 0
   print("Starting testing process...")
+  id = int(time.time())
+  set_paths(id)
   try:
     for filename in os.listdir(f"{DATA_PATH}/{test_type}/test"):
-      create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
+      create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH], id)
       extract_landmarks(test_type, True, filename)
       calculate_biomarkers(test_type)
       result = predict_result(test_type)
