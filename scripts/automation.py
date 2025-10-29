@@ -59,7 +59,7 @@ def train_model(chosen_model):
   dump(model, f"{MODELS_PATH}/{chosen_model}")
   print(f"Successfully trained and saved model: {chosen_model}")
 
-def predict_result(chosen_model, filename):
+def predict_result(chosen_model):
   model = load(f"{MODELS_PATH}/{chosen_model}")
   data = load_data_no_label(BIOMARKERS_FOLDER_PATH)
   return model.predict(data)
@@ -70,7 +70,7 @@ def classify_video(test_type, video_name):
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
     extract_landmarks(test_type, False, video_name)
     calculate_biomarkers(test_type)
-    result = predict_result(test_type, video_name)
+    result = predict_result(test_type)
     if result == 1:
       print("Test is normal!")
     else:
@@ -101,7 +101,7 @@ def test(test_type):
       create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
       extract_landmarks(test_type, is_test=True, filename)
       calculate_biomarkers(test_type)
-      result = predict_result(test_type, filename)
+      result = predict_result(test_type)
       true_label = 0 if "abnormal" in filename else 1
       if result == true_label:
         correct_test_count += 1
