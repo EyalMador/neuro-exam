@@ -99,7 +99,7 @@ def test(test_type):
   try:
     for filename in os.listdir(f"{DATA_PATH}/{test_type}/test"):
       create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-      extract_landmarks(test_type, is_test=True, filename)
+      extract_landmarks(test_type, True, filename)
       calculate_biomarkers(test_type)
       result = predict_result(test_type)
       true_label = 0 if "abnormal" in filename else 1
