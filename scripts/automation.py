@@ -14,7 +14,7 @@ WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/temp_script_folder'
 LANDMARKS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Landmarks'
 BIOMARKERS_FOLDER_PATH = WORKING_FOLDER_PATH + '/Biomarkers'
 
-def extract_landmarks(test_type, video_name=None):
+def extract_landmarks(test_type, is_test, video_name=None):
   from scripts.run_landmarks import run_landmarks_batch
   print("Extracting landmarks...")
   
@@ -25,8 +25,9 @@ def extract_landmarks(test_type, video_name=None):
                              
   #Extract from all videos in folder:
   else:
+    input_dir = f"{DATA_PATH}/{test_type}/test" if is_test else f"{DATA_PATH}/{test_type}/train"
     run_landmarks_batch(
-        input_dir=f"{DATA_PATH}/{test_type}",
+        input_dir=input_dir,
         output_dir=LANDMARKS_FOLDER_PATH,
         lib="rtmlib",
         model_type="body26",
@@ -56,18 +57,19 @@ def train_model(chosen_model):
 def predict_result(chosen_model, filename):
   model = load(f"{MODELS_PATH}/{chosen_model}")
   data = load_data_no_label(BIOMARKERS_FOLDER_PATH)
-  if model.predict(data) == 1:
-    print("Test is normal!")
-  else:
-    print("Test abnormal! Call a doctor.")
+  return model.predict(data)
     
 def classify_video(test_type, video_name):
   print("Starting classification process...")
   try:
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-    extract_landmarks(test_type, video_name)
+    extract_landmarks(test_type, is_test=True, video_name)
     calculate_biomarkers(test_type)
-    predict_result(test_type, video_name)
+    result = predict_result(test_type, video_name)
+    if result == 1:
+      print("Test is normal!")
+    else:
+      print("Test abnormal! Call a doctor.")
     print("Classification process finished successfully.")
   except Exception as e:
     print(e)
@@ -77,7 +79,7 @@ def train(test_type):
   print("Starting training process...")
   try:
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-    extract_landmarks(test_type)
+    extract_landmarks(test_type, is_test=False)
     calculate_biomarkers(test_type)
     train_model(test_type)
     print("Training process finished successfully.")
