@@ -85,7 +85,7 @@ def classify_video(test_type, video_name):
     print("Classification process finished successfully.")
   except Exception as e:
     print(e)
-  cleanup_folder(WORKING_FOLDER_PATH)
+  #cleanup_folder(WORKING_FOLDER_PATH)
 
 def train(test_type):
   print("Starting training process...")
@@ -99,7 +99,7 @@ def train(test_type):
     print("Training process finished successfully.")
   except Exception as e:
     print(e)
-  cleanup_folder(WORKING_FOLDER_PATH)
+  #cleanup_folder(WORKING_FOLDER_PATH)
 
 def test(test_type):
   test_count = 0
@@ -109,6 +109,7 @@ def test(test_type):
   set_paths(id)
   try:
     for filename in os.listdir(f"{DATA_PATH}/{test_type}/test"):
+      set_paths(str(id) + '/' + filename)
       create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH], id)
       extract_landmarks(test_type, True, filename)
       calculate_biomarkers(test_type)
@@ -120,10 +121,10 @@ def test(test_type):
       else:
         print(f"Model predicted falsely! For file {filename} model: {result} truth: {true_label}")
       test_count += 1
-      cleanup_folder(WORKING_FOLDER_PATH)
+      #cleanup_folder(WORKING_FOLDER_PATH)
     print("Testing process finished successfully.")
     accuracy = round((correct_test_count / test_count) * 100, 2)
     print(f"Successful prediction in {correct_test_count}/{test_count} tests. Accuracy: {accuracy}%")
   except Exception as e:
     print(e)
-  cleanup_folder(WORKING_FOLDER_PATH)
+  #cleanup_folder(WORKING_FOLDER_PATH)
