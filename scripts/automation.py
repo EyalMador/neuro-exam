@@ -99,7 +99,7 @@ def train(test_type):
   set_paths(id)
   try:
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-    #extract_landmarks(test_type, is_test=False)
+    extract_landmarks(test_type, is_test=False)
     calculate_biomarkers(test_type)
     train_model(test_type)
     print("Training process finished successfully.")
