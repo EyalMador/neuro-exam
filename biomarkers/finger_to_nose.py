@@ -48,11 +48,6 @@ def moving_finger(distance_data, frames_number):
                 return side
             
     return 'none'
-    
-
-
-
-
 
 
 
@@ -89,6 +84,8 @@ def local_minimum_distances_statistics(right_finger, left_finger, nose):
     return statistics
     
 def extract_finger_to_nose_biomarkers(landmarks):
+
+    [left_finger, right_finger, nose] = helper.extract_traj(landmarks,["LEFT_FINGER", "RIGHT_FINGER", "NOSE"])
     biomarkers = {}
 
     biomarkers["ftn_distances"] = local_minimum_distances_statistics(right_finger, left_finger, nose)
