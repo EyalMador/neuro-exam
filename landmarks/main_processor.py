@@ -5,6 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import av
+import subprocess
+
 
 from .media_pipe_wrapper import MPModel
 from .rtm_wrapper import RTMModel
@@ -14,28 +16,25 @@ def get_video(path):
     if not os.path.exists(path):
         raise FileNotFoundError(f"Video not found at {path}")
 
-    # --- Open container with PyAV ---
-    container = av.open(path)
-    stream = container.streams.video[0]
-
-    # Rotation can appear in either container or stream metadata
-    rotation = (
-        container.metadata.get("rotate")
-        or stream.metadata.get("rotate")
-        or 0
-    )
-
+    rotation = 0
+    
     try:
-        rotation = int(rotation)
-    except Exception:
+        # Use ffprobe to get rotation metadata
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0", 
+             "-show_entries", "stream=rotation", "-of", "default=noprint_wrappers=1:nokey=1", path],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.stdout.strip():
+            rotation = int(result.stdout.strip())
+    except Exception as e:
+        print(f"ffprobe error: {e}")
         rotation = 0
-
-    print("Container metadata:", container.metadata)
-    print("Stream metadata:", stream.metadata)
-    container.close()
+    
     print(f"Detected rotation: {rotation}°")
 
-    # --- Create capture object ---
     cap = cv2.VideoCapture(path)
     return cap, rotation
     
