@@ -49,6 +49,7 @@ def extract_landmarks(test_type, is_test, video_name=None):
 
   file_list = os.listdir(video_dir_path)
   for filename in file_list:
+    print(f"Extracting landmarks from {filename}")
     filename_json = filename.split('.')[0] + '.json'
     if filename_json not in file_list:
       video_path = video_dir_path + f'/{filename}'
