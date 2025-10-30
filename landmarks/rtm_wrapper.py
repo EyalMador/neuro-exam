@@ -89,7 +89,7 @@ class RTMModel:
                     "v": float(v),
                 }
 
-    def processing(self, cap, save_video_output=True, output_video_dir=".", output_video_name="rtm_output.mp4"):
+    def processing(self, cap, save_video_output=True, output_video_dir=".", output_video_name="rtm_output.mp4", rotation=0):
         """Run inference and save annotated video."""
         self.video.frame_data = Frame(cap)
 
@@ -103,7 +103,6 @@ class RTMModel:
             )
 
         frame_num = 0
-        rotation = getattr(cap, "rotation", 0)
 
         print(f"Starting RTMLib processing...")
 

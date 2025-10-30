@@ -206,7 +206,7 @@ class MPModel:
         """
 
     
-    def processing(self, cap, save_video_output=True, output_video_dir=".", output_video_name = "output.mp4"):
+    def processing(self, cap, save_video_output=True, output_video_dir=".", output_video_name = "output.mp4", rotation=0):
         self.video.frame_data = Frame(cap)
         if save_video_output:
             output_path = os.path.join(output_video_dir, output_video_name)
@@ -216,7 +216,6 @@ class MPModel:
             )
 
         frame_num = 0
-        rotation = getattr(cap, "rotation", 0)
 
         while cap.isOpened():
             ret, frame = cap.read()

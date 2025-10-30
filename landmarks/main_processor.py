@@ -23,9 +23,7 @@ def get_video(path):
     # convert to OpenCV VideoCapture-like object
     cap = cv2.VideoCapture(path)
 
-    # Wrap the object with rotation info so you can handle it downstream
-    cap.rotation = rotation
-    return cap
+    return cap, rotation
     
 def save_json(video_coords, output_dir=".", output_name="landmarks.json", frame_width=1080, frame_height=1920):
     """Save landmarks dictionary to JSON file with metadata."""
@@ -115,35 +113,35 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
     if lib == 'mediapipe':
         # Pose only
         if m_type == "pose":
-            cap = get_video(source_video_path)
+            cap, rotation = get_video(source_video_path)
             model = MPModel("pose", complexity=2, t_confidence=0.5, d_confidence=0.5, use_world_landmarks=True)
             coords = model.processing(
                 cap, save_video_output=True,
                 output_video_dir=output_video_dir,
-                output_video_name=f"pose_{output_video_name}"
+                output_video_name=f"pose_{output_video_name}", rotation=rotation
             )
             return {"pose": coords, "hands": {}}
         
         # Hands only
         elif m_type == "hands":
-            cap = get_video(source_video_path)
+            cap, rotation = get_video(source_video_path)
             model = MPModel("hands", t_confidence=0.4, d_confidence=0.4, use_world_landmarks=True)
             coords = model.processing(
                 cap, save_video_output=True,
                 output_video_dir=output_video_dir,
-                output_video_name=f"hands_{output_video_name}"
+                output_video_name=f"hands_{output_video_name}", rotation=rotation
             )
             return {"pose": {}, "hands": coords}
         
         
         # Holistic - pose + hands
         elif m_type == "holistic":
-            cap = get_video(source_video_path)
+            cap, rotation = get_video(source_video_path)
             model = MPModel("holistic", use_world_landmarks=True)
             coords = model.processing(
                 cap, save_video_output=True,
                 output_video_dir=output_video_dir,
-                output_video_name=f"holistic_{output_video_name}"
+                output_video_name=f"holistic_{output_video_name}", rotation=rotation
             )
 
             # Split holistic coords into pose and hands
@@ -169,13 +167,13 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
         if m_type != "body26":
             raise ValueError("RTMLib only supports model_type='body26' for now.")
 
-        cap = get_video(source_video_path)
+        cap, rotation = get_video(source_video_path)
         model = RTMModel(model_type="body26", device="cuda", backend="onnxruntime")
         coords = model.processing(
             cap,
             save_video_output=True,
             output_video_dir=output_video_dir,
-            output_video_name=f"rtm_{output_video_name}"
+            output_video_name=f"rtm_{output_video_name}", rotation=rotation
         )
         return {"pose": coords, "hands": {}}
     
