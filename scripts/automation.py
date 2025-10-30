@@ -124,7 +124,7 @@ def test(test_type):
   set_paths(id)
   try:
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-    extract_landmarks(test_type, True, filename)
+    extract_landmarks(test_type, True)
     calculate_biomarkers(test_type)
     results = predict_results(test_type)
     for filename in os.listdir(f"{DATA_PATH}/{test_type}/test"):
