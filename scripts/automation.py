@@ -79,7 +79,7 @@ def predict_results(chosen_model):
   results = {}
   model = load(f"{MODELS_PATH}/{chosen_model}")
   for filename in os.listdir(BIOMARKERS_FOLDER_PATH):
-    data = load_data_no_label(BIOMARKERS_FOLDER_PATH, filename) #change func args!
+    data = load_data_no_label(BIOMARKERS_FOLDER_PATH, filename)
     results[filename] = model.predict(data)[0]
   return results
     
