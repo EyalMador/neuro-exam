@@ -14,15 +14,28 @@ def get_video(path):
     if not os.path.exists(path):
         raise FileNotFoundError(f"Video not found at {path}")
 
-    # open video container with PyAV
+    # --- Open container with PyAV ---
     container = av.open(path)
     stream = container.streams.video[0]
-    rotation = int(stream.metadata.get("rotate", 0) or 0)
+
+    # Rotation can appear in either container or stream metadata
+    rotation = (
+        container.metadata.get("rotate")
+        or stream.metadata.get("rotate")
+        or 0
+    )
+
+    try:
+        rotation = int(rotation)
+    except Exception:
+        rotation = 0
+
+    container.close()
+
     print(f"Detected rotation: {rotation}°")
 
-    # convert to OpenCV VideoCapture-like object
+    # --- Create capture object ---
     cap = cv2.VideoCapture(path)
-
     return cap, rotation
     
 def save_json(video_coords, output_dir=".", output_name="landmarks.json", frame_width=1080, frame_height=1920):
