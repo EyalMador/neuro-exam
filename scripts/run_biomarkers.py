@@ -24,7 +24,7 @@ BIOMARKERS_SNAKECASE = {
     "straight_walk": extract_straight_walk_biomarkers,
     "heel_to_toe_walk": extract_heel_to_toe_biomarkers,
     "raise_hands": extract_raise_hands_biomarkers,
-    "raise_hands": extract_finger_to_nose_biomarkers,
+    "finger_to_nose": extract_finger_to_nose_biomarkers,
 
 }
 
