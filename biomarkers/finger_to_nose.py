@@ -1,6 +1,6 @@
 import numpy as np
 import biomarkers.helper as helper
-from helper import save_biomarkers_json
+from biomarkers.helper import save_biomarkers_json
 
 models = ["pose","hands"]
 
