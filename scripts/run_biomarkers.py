@@ -9,17 +9,23 @@ import matplotlib.pyplot as plt
 from biomarkers.finger_to_nose import extract_finger_to_nose_biomarkers
 from biomarkers.straight_walk import extract_straight_walk_biomarkers
 from biomarkers.heel_to_toe_walk import extract_heel_to_toe_biomarkers
+from biomarkers.raise_hands import extract_raise_hands_biomarkers
+
 
 
 BIOMARKERS = {
-    # "Finger to Nose": extract_finger_to_nose_biomarkers,
+    "Finger to Nose": extract_finger_to_nose_biomarkers,
     "Straight Walk": extract_straight_walk_biomarkers,
-    "Heel To Toe": extract_heel_to_toe_biomarkers
+    "Heel To Toe": extract_heel_to_toe_biomarkers,
+    "RAISE HANDS": extract_raise_hands_biomarkers
 }
 
 BIOMARKERS_SNAKECASE = {
     "straight_walk": extract_straight_walk_biomarkers,
-    "heel_to_toe_walk": extract_heel_to_toe_biomarkers
+    "heel_to_toe_walk": extract_heel_to_toe_biomarkers,
+    "raise_hands": extract_raise_hands_biomarkers,
+    "raise_hands": extract_finger_to_nose_biomarkers,
+
 }
 
 
