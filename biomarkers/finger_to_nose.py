@@ -1,5 +1,6 @@
 import numpy as np
 import biomarkers.helper as helper
+from helper import save_biomarkers_json
 
 models = ["pose","hands"]
 
@@ -83,12 +84,14 @@ def local_minimum_distances_statistics(right_finger, left_finger, nose):
     
     return statistics
     
-def extract_finger_to_nose_biomarkers(landmarks):
+def extract_finger_to_nose_biomarkers(landmarks, output_dir, filename):
 
     [left_finger, right_finger, nose] = helper.extract_traj(landmarks,["LEFT_FINGER", "RIGHT_FINGER", "NOSE"])
     biomarkers = {}
 
     biomarkers["ftn_distances"] = local_minimum_distances_statistics(right_finger, left_finger, nose)
+    save_biomarkers_json(biomarkers, output_dir, filename)
+
 
     return biomarkers
 
