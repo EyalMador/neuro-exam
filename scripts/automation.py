@@ -7,6 +7,7 @@ from joblib import dump, load
 import numpy as np
 import json
 import datetime
+import shutil
 
 MODELS_PATH = "/content/drive/MyDrive/neuro-exam/Models"
 DATA_PATH = '/content/drive/MyDrive/neuro-exam/Data'
@@ -14,6 +15,11 @@ CLASSIFY_PATH = '/content/drive/MyDrive/neuro-exam/Data/Classify'
 WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/Run_Files'
 LANDMARKS_FOLDER_PATH = ''
 BIOMARKERS_FOLDER_PATH = ''
+
+def copy_file(source_dir, dest_dir, filename):
+  source_path = source_dir + filename
+  dest_path = dest_dir + filename
+  shutil.copy2(source_path, dest_path)
 
 def get_id():
   now = datetime.datetime.now()
@@ -33,24 +39,23 @@ def extract_landmarks(test_type, is_test, video_name=None):
   if video_name is not None and not is_test:
     video_path = CLASSIFY_PATH + '/' + video_name
     run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, LANDMARKS_FOLDER_PATH)
+    return
 
-  #Test:
-  if video_name is not None and is_test:
-    video_path = DATA_PATH + f'/{test_type}' + '/test' + f'/{video_name}'
-    run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, LANDMARKS_FOLDER_PATH)
-    
-  #Train:
-  if video_name is None:
-    input_dir = f"{DATA_PATH}/{test_type}/train"
-    run_landmarks_batch(
-        input_dir=input_dir,
-        output_dir=LANDMARKS_FOLDER_PATH,
-        lib="rtmlib",
-        model_type="body26",
-        export_video=True,
-        export_json=True,
-        export_csv=False
-    )
+  video_dir_path = DATA_PATH + f'/test_type'
+  if is_test:
+    video_dir_path += '/test'
+  else:
+    video_dir_path += '/train'
+
+  file_list = os.listdir(video_dir_path)
+  for filename in file_list:
+    filename_json = filename.split('.')[0] + '.json'
+    if filename_json not in file_list:
+      video_path = video_dir_path += f'/{filename}'
+      run_extraction_with_args(video_path, video_dir_path, 'rtmlib', 'body26', video_name, LANDMARKS_FOLDER_PATH)
+    else:
+      print(f"{filename} landmarks already extracted, skipping...")
+    copy_file(video_dir_path, LANDMARKS_FOLDER_PATH, filename_json)      
 
 def calculate_biomarkers(test_type):
   print("Calculating biomarkers...")
@@ -70,10 +75,13 @@ def train_model(chosen_model):
   dump(model, f"{MODELS_PATH}/{chosen_model}")
   print(f"Successfully trained and saved model: {chosen_model}")
 
-def predict_result(chosen_model):
+def predict_results(chosen_model):
+  results = {}
   model = load(f"{MODELS_PATH}/{chosen_model}")
-  data = load_data_no_label(BIOMARKERS_FOLDER_PATH)
-  return model.predict(data)[0]
+  for filename in os.listdir(BIOMARKERS_FOLDER_PATH):
+    data = load_data_no_label(BIOMARKERS_FOLDER_PATH, filename) #change func args!
+    results[filename] = model.predict(data)[0]
+  return results
     
 def classify_video(test_type, video_name):
   print("Starting classification process...")
@@ -83,7 +91,8 @@ def classify_video(test_type, video_name):
     create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
     extract_landmarks(test_type, False, video_name)
     calculate_biomarkers(test_type)
-    result = predict_result(test_type)
+    results = predict_results(test_type)
+    result = list(results.values())[0]
     if result == 1:
       print("Test is normal!")
     else:
@@ -114,14 +123,13 @@ def test(test_type):
   id = get_id()
   set_paths(id)
   try:
+    create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
+    extract_landmarks(test_type, True, filename)
+    calculate_biomarkers(test_type)
+    results = predict_results(test_type)
     for filename in os.listdir(f"{DATA_PATH}/{test_type}/test"):
-      set_paths(id + '/' + filename)
-      create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-      extract_landmarks(test_type, True, filename)
-      calculate_biomarkers(test_type)
-      result = predict_result(test_type)
       true_label = 0 if "abnormal" in filename else 1
-      if result == true_label:
+      if results[filename] == true_label:
         correct_test_count += 1
         print(f"Model predicted correctly! For file {filename} model: {result} truth: {true_label}")
       else:
