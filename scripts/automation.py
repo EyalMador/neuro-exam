@@ -17,8 +17,8 @@ LANDMARKS_FOLDER_PATH = ''
 BIOMARKERS_FOLDER_PATH = ''
 
 def copy_file(source_dir, dest_dir, filename):
-  source_path = source_dir + filename
-  dest_path = dest_dir + filename
+  source_path = source_dir + f'/{filename}'
+  dest_path = dest_dir + f'/{filename}'
   shutil.copy2(source_path, dest_path)
 
 def get_id():
