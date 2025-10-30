@@ -1,4 +1,4 @@
-from scripts.automation import train, classify_video
+from scripts.automation import train, classify_video, test
 from IPython.display import clear_output
 
 supported_tests = ["straight_walk", "heel_to_toe_walk", "raise_hands", "finger_to_nose"]
@@ -7,8 +7,8 @@ def main():
   clear_output(wait=False)
   while True:
     while True:
-      chosen_operation = input("Choose train/classify/exit: ")
-      if chosen_operation in ["train", "classify", "exit"]:
+      chosen_operation = input("Choose train/classify/test/exit: ")
+      if chosen_operation in ["train", "classify", "exit", "test"]:
         if not chosen_operation == "exit":
           clear_output(wait=False)
         break
@@ -21,7 +21,16 @@ def main():
         else:
           break
       train(chosen_test)
-  
+
+    if chosen_operation == "test":
+      while True:
+        chosen_test = input("Enter requested test to test: ")
+        if chosen_test not in supported_tests:
+          print(f"Error: {chosen_test} test not supported.")
+        else:
+          break
+      test(chosen_test)
+      
     if chosen_operation == "classify":
       while True:
         chosen_test = input("Enter requested test to classify: ")
