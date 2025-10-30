@@ -41,7 +41,7 @@ def extract_landmarks(test_type, is_test, video_name=None):
     run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, LANDMARKS_FOLDER_PATH)
     return
 
-  video_dir_path = DATA_PATH + f'/test_type'
+  video_dir_path = DATA_PATH + f'/{test_type}'
   if is_test:
     video_dir_path += '/test'
   else:
