@@ -30,8 +30,9 @@ def get_video(path):
     except Exception:
         rotation = 0
 
+    print("Container metadata:", container.metadata)
+    print("Stream metadata:", stream.metadata)
     container.close()
-
     print(f"Detected rotation: {rotation}°")
 
     # --- Create capture object ---
