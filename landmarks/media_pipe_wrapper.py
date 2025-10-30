@@ -216,10 +216,22 @@ class MPModel:
             )
 
         frame_num = 0
+        rotation = getattr(cap, "rotation", 0)
+
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
+            
+            # --- Rotate frame if needed ---
+            if rotation == 90:
+                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            elif rotation == 180:
+                frame = cv2.rotate(frame, cv2.ROTATE_180)
+            elif rotation == 270:
+                frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            
+            
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             result = self.model.process(rgb)
 

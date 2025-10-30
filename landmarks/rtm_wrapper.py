@@ -103,6 +103,8 @@ class RTMModel:
             )
 
         frame_num = 0
+        rotation = getattr(cap, "rotation", 0)
+
         print(f"Starting RTMLib processing...")
 
         from tqdm.notebook import tqdm
@@ -114,7 +116,14 @@ class RTMModel:
             if not ret:
                 break
 
-
+             # --- Rotate frame if needed ---
+            if rotation == 90:
+                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            elif rotation == 180:
+                frame = cv2.rotate(frame, cv2.ROTATE_180)
+            elif rotation == 270:
+                frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                
             keypoints, scores = self.model(frame)
 
             # visualize

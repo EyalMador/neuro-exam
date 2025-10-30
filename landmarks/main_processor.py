@@ -10,10 +10,21 @@ from .rtm_wrapper import RTMModel
 
 
 def get_video(path):
-    if os.path.exists(path):
-        return cv2.VideoCapture(path)
-    else:
+    if not os.path.exists(path):
         raise FileNotFoundError(f"Video not found at {path}")
+
+    # open video container with PyAV
+    container = av.open(path)
+    stream = container.streams.video[0]
+    rotation = int(stream.metadata.get("rotate", 0) or 0)
+    print(f"Detected rotation: {rotation}°")
+
+    # convert to OpenCV VideoCapture-like object
+    cap = cv2.VideoCapture(path)
+
+    # Wrap the object with rotation info so you can handle it downstream
+    cap.rotation = rotation
+    return cap
     
 def save_json(video_coords, output_dir=".", output_name="landmarks.json", frame_width=1080, frame_height=1920):
     """Save landmarks dictionary to JSON file with metadata."""
