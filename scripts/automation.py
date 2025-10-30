@@ -107,20 +107,6 @@ def train(test_type):
     print(e)
   #cleanup_folder(WORKING_FOLDER_PATH)
 
-def train_over_landmarks(test_type):
-    print("Starting training process...")
-    id = get_id()
-    set_paths(id)
-    try:
-      create_temp_folder([LANDMARKS_FOLDER_PATH,BIOMARKERS_FOLDER_PATH])
-      extract_landmarks(test_type, is_test=False)
-      calculate_biomarkers(test_type)
-      train_model(test_type)
-      print("Training process finished successfully.")
-    except Exception as e:
-      print(e)
-    #cleanup_folder(WORKING_FOLDER_PATH)
-
 def test(test_type):
   test_count = 0
   correct_test_count = 0
