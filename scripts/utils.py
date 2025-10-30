@@ -39,15 +39,9 @@ def load_data_with_label(path):
     return X, y
 
 
-def load_data_no_label(path):
+def load_data_no_label(path, filename):
     X = []
 
-    # Find the first .json file in the folder
-    json_files = [f for f in os.listdir(path) if f.endswith(".json")]
-    if not json_files:
-        raise FileNotFoundError(f"No JSON files found in folder: {path}")
-
-    filename = json_files[0]
     file_path = os.path.join(path, filename)
 
     with open(file_path, "r") as f:
