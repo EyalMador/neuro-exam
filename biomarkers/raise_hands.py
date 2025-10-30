@@ -2,6 +2,8 @@
 import numpy as np
 from scipy.signal import find_peaks, peak_widths
 import matplotlib.pyplot as plt
+from biomarkers.helper import save_biomarkers_json
+
 
 
 
@@ -61,6 +63,7 @@ def smooth_signal(sig, window=5):
         return sig
     kernel = np.ones(window) / window
     return np.convolve(sig, kernel, mode="same")
+
 
 def detect_raise_events(left_wrist, right_wrist,
                         prominence=0.15,
@@ -182,9 +185,6 @@ def symmetry_biomarker(events, left_wrist, right_wrist):
     return results
 
 
-import numpy as np
-
-
 def speed_biomarker(events, left_wrist, right_wrist, fps=60):
     """
     Compute speed of hand raise for normalized RTM pose data.
@@ -223,8 +223,6 @@ def speed_biomarker(events, left_wrist, right_wrist, fps=60):
     return results
 
 
-
-
 def consistency_biomarker(symmetry_scores):
     """1 - normalized std of symmetry scores → 1 = perfect consistency."""
     vals = list(symmetry_scores.values())
@@ -233,8 +231,6 @@ def consistency_biomarker(symmetry_scores):
     mean_sym = np.mean(vals)
     std_sym = np.std(vals)
     return float(1.0 - std_sym / (abs(mean_sym) + 1e-7))
-
-
 
 
 def plot_wrist_time_series(frames, left_wrist, right_wrist,
@@ -285,9 +281,6 @@ def plot_wrist_time_series(frames, left_wrist, right_wrist,
     plt.show()
 
 
-
-import numpy as np
-
 def all_round_symmetry(left_wrist, right_wrist):
     """
     Global symmetry across the entire test (normalized RTM pose).
@@ -310,8 +303,7 @@ def all_round_symmetry(left_wrist, right_wrist):
     return float(np.mean(diffs)) if diffs else None
 
 
-
-def extract_raise_hands_biomarkers(coords, fps=60):
+def extract_raise_hands_biomarkers(coords, output_dir, filename, fps=60):
     pose_norm = normalize_pose_coords(coords["pose"])
     coords = {"pose": pose_norm}
     
@@ -345,6 +337,8 @@ def extract_raise_hands_biomarkers(coords, fps=60):
     
     consistency = consistency_biomarker(symmetry)
     res["symmetry_consistency"] = consistency
+
+    save_biomarkers_json(res, output_dir, filename)
 
     print(res)
     return res
