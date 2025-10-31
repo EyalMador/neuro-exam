@@ -16,6 +16,8 @@ WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/Run_Files'
 LANDMARKS_FOLDER_PATH = ''
 BIOMARKERS_FOLDER_PATH = ''
 
+video_formats = (".mp4", ".mov", ".wmv", ".avi", ".flv", ".mkv", ".webm", ".m4v", ".3gp", ".mpg")
+
 def copy_file(source_dir, dest_dir, filename):
   source_path = source_dir + f'/{filename}'
   dest_path = dest_dir + f'/{filename}'
@@ -50,6 +52,8 @@ def extract_landmarks(test_type, is_test, video_name=None):
   file_list = os.listdir(video_dir_path)
   for filename in file_list:
     filename_json = filename.split('.')[0] + '.json'
+    if not filename.lower().endswith(video_formats):
+      continue
     if filename_json not in file_list:
       video_path = video_dir_path + f'/{filename}'
       run_extraction_with_args(video_path, video_dir_path, 'rtmlib', 'body26', filename, LANDMARKS_FOLDER_PATH)
