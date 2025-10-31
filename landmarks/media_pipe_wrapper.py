@@ -208,11 +208,17 @@ class MPModel:
     
     def processing(self, cap, save_video_output=True, output_video_dir=".", output_video_name = "output.mp4", rotation=0):
         self.video.frame_data = Frame(cap)
+        
+        if rotation in [90, 270]:
+            out_w, out_h = self.video.frame_data.height, self.video.frame_data.width
+        else:
+            out_w, out_h = self.video.frame_data.width, self.video.frame_data.height
+        
         if save_video_output:
             output_path = os.path.join(output_video_dir, output_video_name)
             self.video.output_channel = self.video.out_channel(
                 output_path, self.video.frame_data.fps,
-                self.video.frame_data.width, self.video.frame_data.height
+                out_w, out_h
             )
 
         frame_num = 0
