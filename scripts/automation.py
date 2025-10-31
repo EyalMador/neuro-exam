@@ -81,10 +81,6 @@ def predict_results(chosen_model):
   for filename in os.listdir(BIOMARKERS_FOLDER_PATH):
     data = load_data_no_label(BIOMARKERS_FOLDER_PATH, filename)
     results[filename] = model.predict(data)[0]
-    if results[filename] == 1:
-      print("Test is normal!")
-    else:
-      print("Test abnormal! Call a doctor.")
   return results
     
 def classify_video(test_type, video_name):
@@ -96,9 +92,12 @@ def classify_video(test_type, video_name):
     extract_landmarks(test_type, False, video_name)
     calculate_biomarkers(test_type)
     results = predict_results(test_type)
-    # result = list(results.values())[0]
-    
-    print("Classification process finished successfully.")
+    result = list(results.values())[0]
+    if result == 1:
+      print("Test is normal!")
+    else:
+      print("Test abnormal! Call a doctor.")
+  print("Classification process finished successfully.")
   except Exception as e:
     print(e)
   #cleanup_folder(WORKING_FOLDER_PATH)
