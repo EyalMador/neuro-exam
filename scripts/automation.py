@@ -74,6 +74,7 @@ def calculate_biomarkers(test_type):
 def train_model(chosen_model):
   print(f"Starting to train model: {chosen_model}")
   data, labels = load_data_with_label(f"{BIOMARKERS_FOLDER_PATH}")
+  print(f"Training on labels: {labels}")
   model = SVC(kernel='rbf', probability=True)
   model.fit(data, labels)
   dump(model, f"{MODELS_PATH}/{chosen_model}")
