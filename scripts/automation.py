@@ -97,7 +97,7 @@ def classify_video(test_type, video_name):
       print("Test is normal!")
     else:
       print("Test abnormal! Call a doctor.")
-  print("Classification process finished successfully.")
+    print("Classification process finished successfully.")
   except Exception as e:
     print(e)
   #cleanup_folder(WORKING_FOLDER_PATH)
