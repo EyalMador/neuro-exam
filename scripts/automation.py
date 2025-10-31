@@ -127,7 +127,7 @@ def test(test_type):
     extract_landmarks(test_type, True)
     calculate_biomarkers(test_type)
     results = predict_results(test_type)
-    for filename in os.listdir(f"{DATA_PATH}/{test_type}/test"):
+    for filename in os.listdir(BIOMARKERS_FOLDER_PATH):
       true_label = 0 if "abnormal" in filename else 1
       if results[filename] == true_label:
         correct_test_count += 1
