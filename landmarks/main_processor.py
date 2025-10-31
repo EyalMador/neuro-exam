@@ -17,26 +17,32 @@ def get_video(path):
         raise FileNotFoundError(f"Video not found at {path}")
 
     rotation = 0
-    
     try:
-        # Use ffprobe to get rotation metadata
+        # Correct ffprobe command for iPhone/MOV/MP4
         result = subprocess.run(
-            ["ffprobe", "-v", "error", "-select_streams", "v:0", 
-             "-show_entries", "stream=rotation", "-of", "default=noprint_wrappers=1:nokey=1", path],
-            capture_output=True,
-            text=True,
-            timeout=5
+            [
+                "ffprobe", "-v", "error",
+                "-select_streams", "v:0",
+                "-show_entries", "stream_tags=rotate",
+                "-of", "default=nw=1:nk=1",
+                path
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
         )
-        if result.stdout.strip():
-            rotation = int(result.stdout.strip())
+
+        output = result.stdout.strip()
+        if output:
+            rotation = int(output)
     except Exception as e:
         print(f"ffprobe error: {e}")
-        rotation = 0
-    
+
     print(f"Detected rotation: {rotation}°")
 
     cap = cv2.VideoCapture(path)
     return cap, rotation
+
     
 def save_json(video_coords, output_dir=".", output_name="landmarks.json", frame_width=1080, frame_height=1920):
     """Save landmarks dictionary to JSON file with metadata."""
@@ -194,42 +200,3 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
     else:
         raise ValueError("Unsupported library")
 
-if __name__ == "__main__":
-    lib="rtmlib"
-    model_type = "body26"
-
-    # All 4 test videos are inside Video_1 folder
-    test_videos = [
-        #"SAW_Ido",
-        "SAW_SIDE"
-        #"FTN_far_3_valid",
-        #"FTN_close_3_valid",
-        #"FTN_1_valid",
-        #"FTN_2_invalid_1_valid",
-        #"FTN_3_valid",
-        #"FTN_3_invalid",
-    ]
-
-    for test_type in test_videos:
-        source_video_path = f"./data/Raw_Videos/Video_1/{test_type}.mp4"
-
-        # Output dirs
-        output_video_path = "./data/output/Video_1/Video_output"
-        output_video_name = f"Video_1_out_{test_type}.mp4"
-
-        output_json_path = "../data/output/Video_1/Landmarks_output"
-        output_json_name = f"Video_1_out_{test_type}.json"
-
-        output_csv_path = "../data/output/Video_1/Landmarks_output"
-        output_csv_name = f"Video_1_out_{test_type}.csv"
-
-        print(f"\n--- Processing {test_type} ---")
-
-        # Run Mediapipe
-        coords = get_landmarks(lib, model_type, source_video_path, output_video_path, output_video_name)
-
-        # Save landmarks
-        save_json(coords, output_json_path, output_json_name)
-        save_csv(coords, output_csv_path, output_csv_name)
-
-        print(f"Finished {test_type}")
