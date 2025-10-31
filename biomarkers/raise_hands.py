@@ -9,7 +9,7 @@ from biomarkers.helper import save_biomarkers_json
 
 def normalize_pose_coords(pose):
     """
-    Normalize RTM pose coordinates where axes are swapped:
+    Normalize RTM pose coordinates:
     - Shoulder midpoint per frame becomes x = 0 (since x is 'height')
     - Divide all x distances by torso height (shoulder - hip)
     Returns a new normalized pose dict (does not modify input).
@@ -18,32 +18,32 @@ def normalize_pose_coords(pose):
     left_shoulder, right_shoulder = pose["BODY_5"], pose["BODY_6"]
     left_hip, right_hip = pose.get("BODY_11"), pose.get("BODY_12")
 
-    # --- torso height (along x axis) ---
+    # --- torso height (along y axis) ---
     if left_hip and right_hip:
-        shoulder_x = np.mean([d["x"] for d in left_shoulder.values()] +
-                             [d["x"] for d in right_shoulder.values()])
-        hip_x = np.mean([d["x"] for d in left_hip.values()] +
-                        [d["x"] for d in right_hip.values()])
-        S = abs(shoulder_x - hip_x) or 1.0
+        shoulder_y = np.mean([d["y"] for d in left_shoulder.values()] +
+                             [d["y"] for d in right_shoulder.values()])
+        hip_y = np.mean([d["y"] for d in left_hip.values()] +
+                        [d["y"] for d in right_hip.values()])
+        S = abs(shoulder_y - hip_y) or 1.0
     else:
         # fallback to shoulder width if hips missing
-        shoulder_width = abs(np.mean([d["y"] for d in left_shoulder.values()]) -
-                             np.mean([d["y"] for d in right_shoulder.values()]))
+        shoulder_width = abs(np.mean([d["x"] for d in left_shoulder.values()]) -
+                             np.mean([d["x"] for d in right_shoulder.values()]))
         S = shoulder_width or 1.0
 
-    # --- per-frame mid-shoulder x (height baseline) ---
+    # --- per-frame mid-shoulder y (height baseline) ---
     all_frames = sorted(set(left_shoulder.keys()) & set(right_shoulder.keys()), key=lambda k: int(k))
-    mid_x = {f: 0.5 * (left_shoulder[f]["x"] + right_shoulder[f]["x"]) for f in all_frames}
+    mid_y = {f: 0.5 * (left_shoulder[f]["y"] + right_shoulder[f]["y"]) for f in all_frames}
 
-    # --- normalize using x as vertical axis ---
+    # --- normalize using y as vertical axis ---
     norm_pose = {}
     for name, lm in pose.items():
         norm_pose[name] = {}
         for f, v in lm.items():
             norm_pose[name][f] = dict(v)
-            if f in mid_x:
-                # normalized "height" → (shoulder midpoint - current x) / torso height
-                norm_pose[name][f]["x"] = (mid_x[f] - v["x"]) / S
+            if f in mid_y:
+                # normalized "height" → (shoulder midpoint - current y) / torso height
+                norm_pose[name][f]["y"] = (mid_y[f] - v["y"]) / S
     return norm_pose
 
 
@@ -81,13 +81,13 @@ def detect_raise_events(left_wrist, right_wrist,
     if not frames:
         return {}
     
-    # Extract and smooth x positions
-    lx = smooth_signal(np.array([left_wrist[f]["x"] for f in frames]), smooth_win)
-    rx = smooth_signal(np.array([right_wrist[f]["x"] for f in frames]), smooth_win)
+    # Extract and smooth y positions
+    ly = smooth_signal(np.array([left_wrist[f]["y"] for f in frames]), smooth_win)
+    ry = smooth_signal(np.array([right_wrist[f]["y"] for f in frames]), smooth_win)
     
     # Find valleys (minima) for each hand by inverting the signal
-    left_events = find_hand_valleys(lx, prominence, width_rel)
-    right_events = find_hand_valleys(rx, prominence, width_rel)
+    left_events = find_hand_valleys(ly, prominence, width_rel)
+    right_events = find_hand_valleys(ry, prominence, width_rel)
     
     # Combine all events from both hands
     all_events = []
@@ -175,8 +175,8 @@ def symmetry_biomarker(events, left_wrist, right_wrist):
         diffs = []
         for f in frames:
             if f in left_wrist and f in right_wrist:
-                lh = left_wrist[f]["x"]   # 'x' is height after normalization
-                rh = right_wrist[f]["x"]
+                lh = left_wrist[f]["y"]   
+                rh = right_wrist[f]["y"]
                 diffs.append(abs(lh - rh))
 
         if diffs:
@@ -207,8 +207,8 @@ def speed_biomarker(events, left_wrist, right_wrist, fps=60):
         heights = []
         for f in frames:
             if f in left_wrist and f in right_wrist:
-                lh = left_wrist[f]["x"]
-                rh = right_wrist[f]["x"]
+                lh = left_wrist[f]["y"]
+                rh = right_wrist[f]["y"]
                 heights.append((lh + rh) / 2)
 
         if not heights:
@@ -296,8 +296,8 @@ def all_round_symmetry(left_wrist, right_wrist):
     diffs = []
     for f in frames:
         if f in left_wrist and f in right_wrist:
-            lh = left_wrist[f]["x"]
-            rh = right_wrist[f]["x"]
+            lh = left_wrist[f]["y"]
+            rh = right_wrist[f]["y"]
             diffs.append(abs(lh - rh))
 
     return float(np.mean(diffs)) if diffs else None
