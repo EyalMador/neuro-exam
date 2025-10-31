@@ -69,7 +69,7 @@ def detect_raise_events(left_wrist, right_wrist,
                         prominence=0.15,
                         width_rel=0.5,
                         smooth_win=7,
-                        merge_gap=20):
+                        merge_gap=15):
     """
     Detect raise-hand events using valley detection.
     Logic:
@@ -87,6 +87,8 @@ def detect_raise_events(left_wrist, right_wrist,
     
     # Find valleys (minima) for each hand by inverting the signal
     left_events = find_hand_valleys(ly, prominence, width_rel)
+    print(f"right events: {right_events}")
+    print(f"left events: {left_events}")
     right_events = find_hand_valleys(ry, prominence, width_rel)
     
     # Combine all events from both hands
