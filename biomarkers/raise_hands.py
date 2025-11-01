@@ -145,9 +145,9 @@ def find_hand_valleys(signal, prominence, width_rel):
     
     # Compute widths on the inverted signal
     widths, h_eval, left_ips, right_ips = peak_widths(
-        inverted,  # Use inverted signal directly
+        inverted,
         valley_indices,
-        rel_height=width_rel
+        rel_height=width_rel  # Just use width_rel directly
     )
     
     valleys = []
