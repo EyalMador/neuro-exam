@@ -67,7 +67,7 @@ def smooth_signal(sig, window=5):
 
 def detect_raise_events(left_wrist, right_wrist,
                         prominence=0.15,
-                        width_rel=0.7,
+                        width_rel=0.5,
                         smooth_win=7,
                         merge_gap=15):
     """
@@ -80,7 +80,7 @@ def detect_raise_events(left_wrist, right_wrist,
     frames = sorted(set(left_wrist.keys()) & set(right_wrist.keys()), key=int)
     if not frames:
         return {}
-    print("check something")
+    
     # Extract and smooth y positions
     ly = smooth_signal(np.array([left_wrist[f]["y"] for f in frames]), smooth_win)
     ry = smooth_signal(np.array([right_wrist[f]["y"] for f in frames]), smooth_win)
@@ -131,40 +131,32 @@ def detect_raise_events(left_wrist, right_wrist,
 
 
 def find_hand_valleys(signal, prominence, width_rel):
-    """
-    Return (start, end) indices for true valleys of `signal`.
-    We invert the signal, find peaks (i.e., minima of original),
-    then take the valley span at the baseline using peak_widths(rel_height=1.0).
-    """
-    y = np.asarray(signal)
-    if y.size == 0:
+    """Find valleys (minima) in a single hand's signal and return their boundaries"""
+    # Invert signal to find valleys as peaks
+    inverted = -signal
+    amplitude = signal.max() - signal.min()
+    prom = amplitude * prominence
+    
+    # Calculate minimum width in samples
+    min_width = max(1, int(len(signal) * width_rel * 0.1))  # Adjust multiplier as needed
+    
+    # Find peaks with width constraint - this gives us peaks that are "wide enough"
+    valley_indices, properties = find_peaks(inverted, prominence=prom, width=min_width)
+    
+    if len(valley_indices) == 0:
         return []
-
-    inv = -y
-    prom = (y.max() - y.min()) * prominence
-    # Optional: require a minimum width in samples
-    min_width_samples = max(1, int(len(y) * width_rel))
-
-    peaks, props = find_peaks(inv, prominence=prom, width=min_width_samples)
-    if peaks.size == 0:
-        return []
-
-    # Get boundaries where the (inverted) peak meets its local baseline
-    widths, h, left_ips, right_ips = peak_widths(inv, peaks, rel_height=1.0)
-
-    # Build and merge intervals
-    raw = [(max(0, int(np.floor(l))), min(len(y)-1, int(np.ceil(r))))
-           for l, r in zip(left_ips, right_ips)]
-
-    raw.sort()
-    merged = []
-    for s, e in raw:
-        if not merged or s > merged[-1][1] + 1:
-            merged.append([s, e])
-        else:
-            merged[-1][1] = max(merged[-1][1], e)
-
-    return [tuple(x) for x in merged]
+    
+    # Get the left and right boundaries from properties
+    left_bases = properties['left_bases']
+    right_bases = properties['right_bases']
+    
+    valleys = []
+    for i in range(len(valley_indices)):
+        start = int(left_bases[i])
+        end = int(right_bases[i])
+        valleys.append((start, end))
+    
+    return valleys
 
 
 def symmetry_biomarker(events, left_wrist, right_wrist):
