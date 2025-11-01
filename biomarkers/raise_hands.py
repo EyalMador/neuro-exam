@@ -67,7 +67,7 @@ def smooth_signal(sig, window=5):
 
 def detect_raise_events(left_wrist, right_wrist,
                         prominence=0.15,
-                        width_rel=0.95,
+                        width_rel=0.5,
                         smooth_win=7,
                         merge_gap=15):
     """
@@ -137,23 +137,23 @@ def find_hand_valleys(signal, prominence, width_rel):
     amplitude = signal.max() - signal.min()
     prom = amplitude * prominence
     
-    # Find minima (peaks in inverted)
-    valley_indices, _ = find_peaks(inverted, prominence=prom)
+    # Calculate minimum width in samples
+    min_width = max(1, int(len(signal) * width_rel * 0.1))  # Adjust multiplier as needed
+    
+    # Find peaks with width constraint - this gives us peaks that are "wide enough"
+    valley_indices, properties = find_peaks(inverted, prominence=prom, width=min_width)
     
     if len(valley_indices) == 0:
         return []
     
-    # Compute widths on the inverted signal
-    widths, h_eval, left_ips, right_ips = peak_widths(
-        inverted,
-        valley_indices,
-        rel_height=width_rel  # Just use width_rel directly
-    )
+    # Get the left and right boundaries from properties
+    left_bases = properties['left_bases']
+    right_bases = properties['right_bases']
     
     valleys = []
     for i in range(len(valley_indices)):
-        start = max(0, int(np.floor(left_ips[i])))
-        end = min(len(signal) - 1, int(np.ceil(right_ips[i])))
+        start = int(left_bases[i])
+        end = int(right_bases[i])
         valleys.append((start, end))
     
     return valleys
