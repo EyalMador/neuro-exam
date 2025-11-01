@@ -98,6 +98,21 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
     if len(distances_minimums['left']['min_values']) == 0 or len(distances_minimums['right']['min_values']) == 0:
         return {'error': 'No data detected'}
 
+    # Check for regularity: normal gait has consistent spacing between minima
+    # Calculate intervals between consecutive minima
+    regularity_scores = {}
+    for side in ['left', 'right']:
+        min_frames = distances_minimums[side]['min_frames']
+        if len(min_frames) > 2:
+            intervals = np.diff(min_frames)
+            # Low std in intervals = regular pattern = normal gait
+            interval_std = np.std(intervals)
+            interval_mean = np.mean(intervals)
+            # Coefficient of variation: should be low for normal gait
+            regularity_scores[side] = interval_std / interval_mean if interval_mean > 0 else 999
+        else:
+            regularity_scores[side] = 0
+
     statistics = {}
     for side in ['left', 'right']:
         side_distances_minimums = distances_minimums[side]['min_values']
@@ -110,10 +125,13 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
                 'std': float(np.std(side_distances_minimums)) if len(side_distances_minimums) > 0 else None,
                 'count': len(side_distances_minimums),
                 'all': list(side_distances_minimums),
-                'all_distances': distance_data
+                'all_distances': distance_data,
+                'regularity': float(regularity_scores[side])
 
             }
+    
     statistics['symmetry_score'] = helper.calc_symmetry(statistics['left'], statistics['right'])
+    statistics['regularity_mean'] = float(np.mean([regularity_scores['left'], regularity_scores['right']]))
         
     return statistics
 
