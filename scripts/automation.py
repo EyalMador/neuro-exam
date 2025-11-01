@@ -16,6 +16,8 @@ WORKING_FOLDER_PATH = '/content/drive/MyDrive/neuro-exam/Run_Files'
 LANDMARKS_FOLDER_PATH = ''
 BIOMARKERS_FOLDER_PATH = ''
 
+video_formats = (".mp4", ".mov", ".wmv", ".avi", ".flv", ".mkv", ".webm", ".m4v", ".3gp", ".mpg")
+
 def copy_file(source_dir, dest_dir, filename):
   source_path = source_dir + f'/{filename}'
   dest_path = dest_dir + f'/{filename}'
@@ -50,6 +52,8 @@ def extract_landmarks(test_type, is_test, video_name=None):
   file_list = os.listdir(video_dir_path)
   for filename in file_list:
     filename_json = filename.split('.')[0] + '.json'
+    if not filename.lower().endswith(video_formats):
+      continue
     if filename_json not in file_list:
       video_path = video_dir_path + f'/{filename}'
       run_extraction_with_args(video_path, video_dir_path, 'rtmlib', 'body26', filename, LANDMARKS_FOLDER_PATH)
@@ -70,6 +74,8 @@ def calculate_biomarkers(test_type):
 def train_model(chosen_model):
   print(f"Starting to train model: {chosen_model}")
   data, labels = load_data_with_label(f"{BIOMARKERS_FOLDER_PATH}")
+  print(f"Training on labels: {labels}")
+  print(f"Training on data: {data}")
   model = SVC(kernel='rbf', probability=True)
   model.fit(data, labels)
   dump(model, f"{MODELS_PATH}/{chosen_model}")
@@ -81,10 +87,6 @@ def predict_results(chosen_model):
   for filename in os.listdir(BIOMARKERS_FOLDER_PATH):
     data = load_data_no_label(BIOMARKERS_FOLDER_PATH, filename)
     results[filename] = model.predict(data)[0]
-    if results[filename] == 1:
-      print("Test is normal!")
-    else:
-      print("Test abnormal! Call a doctor.")
   return results
     
 def classify_video(test_type, video_name):
@@ -96,8 +98,11 @@ def classify_video(test_type, video_name):
     extract_landmarks(test_type, False, video_name)
     calculate_biomarkers(test_type)
     results = predict_results(test_type)
-    # result = list(results.values())[0]
-    
+    result = list(results.values())[0]
+    if result == 1:
+      print("Test is normal!")
+    else:
+      print("Test abnormal! Call a doctor.")
     print("Classification process finished successfully.")
   except Exception as e:
     print(e)
@@ -128,7 +133,8 @@ def test(test_type):
     extract_landmarks(test_type, True)
     calculate_biomarkers(test_type)
     results = predict_results(test_type)
-    for filename in os.listdir(f"{DATA_PATH}/{test_type}/test"):
+    print(f"\nResults: \n{results}")
+    for filename in os.listdir(BIOMARKERS_FOLDER_PATH):
       true_label = 0 if "abnormal" in filename else 1
       if results[filename] == true_label:
         correct_test_count += 1
