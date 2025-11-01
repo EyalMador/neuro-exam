@@ -134,28 +134,28 @@ def find_hand_valleys(signal, prominence, width_rel):
     """Find valleys (minima) in a single hand's signal and return their boundaries"""
     # Invert signal to find valleys as peaks
     inverted = -signal
+    
     amplitude = signal.max() - signal.min()
     prom = amplitude * prominence
     
-    # Calculate minimum width in samples
-    min_width = max(1, int(len(signal) * width_rel * 0.1))  # Adjust multiplier as needed
-    
-    # Find peaks with width constraint - this gives us peaks that are "wide enough"
-    valley_indices, properties = find_peaks(inverted, prominence=prom, width=min_width)
-    
+    # Find minima (peaks in inverted)
+    valley_indices, _ = find_peaks(inverted, prominence=prom)
     if len(valley_indices) == 0:
         return []
-    
-    # Get the left and right boundaries from properties
-    left_bases = properties['left_bases']
-    right_bases = properties['right_bases']
-    
+
+    # Compute widths relative to the original signal (not inverted)
+    widths, h_eval, left_ips, right_ips = peak_widths(
+        signal.max() - signal,  # flip vertically around top
+        valley_indices,
+        rel_height=width_rel
+    )
+
     valleys = []
     for i in range(len(valley_indices)):
-        start = int(left_bases[i])
-        end = int(right_bases[i])
+        start = max(0, int(np.floor(left_ips[i])))
+        end = min(len(signal) - 1, int(np.ceil(right_ips[i])))
         valleys.append((start, end))
-    
+
     return valleys
 
 
