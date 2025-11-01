@@ -230,8 +230,8 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
     steps = detect_steps(left_heel, left_toe, right_heel, right_toe)
     
     # stride lengths
-    left_strides = stride_lengths(left_heel, steps, 'left')
-    right_strides = stride_lengths(right_heel, steps, 'right')
+    left_strides = stride_lengths(left_heel, left_toe, steps, 'left')
+    right_strides = stride_lengths(right_heel, right_toe, steps, 'right')
     strides = left_strides + right_strides
     
     # step times
