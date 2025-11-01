@@ -5,6 +5,26 @@ import biomarkers.straight_walk as sw
 from biomarkers.helper import save_biomarkers_json
 
 
+import matplotlib.pyplot as plt
+
+def plot_heel_toe_distance(distances):
+
+    frames = list(map(int, distances['left'].keys()))
+    left_vals = list(distances['left'].values())
+    right_vals = list(distances['right'].values())
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(frames, left_vals, label='Left heel → Right toe', marker='o')
+    plt.plot(frames, right_vals, label='Right heel → Left toe', marker='o')
+    plt.xlabel('Frame')
+    plt.ylabel('Distance')
+    plt.title('Heel-Toe Distance Over Time')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+
 def heel_toe_distance(left_heel, right_heel, left_toe, right_toe):
 
     distances = {
@@ -12,7 +32,7 @@ def heel_toe_distance(left_heel, right_heel, left_toe, right_toe):
         'right': {}     
     }
     
-    # Get all frames (assuming all landmarks have same frames)
+    # Get all frames
     frames = range(len(left_heel))
     
     # Calculate distances for each frame
@@ -29,6 +49,8 @@ def heel_toe_distance(left_heel, right_heel, left_toe, right_toe):
         
         distances['left'][frame] = float(left_distance)
         distances['right'][frame] = float(right_distance)
+        plot_heel_toe_distance(distances)
+
   
     return distances
 
@@ -65,7 +87,7 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
 
 def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename):
 
-    rtm_names_landmarks = helper.rtm_indices_to_names(landmarks, lnc.rtm_mapping())
+    rtm_names_landmarks = helper.indices_to_names(landmarks, lnc.rtm_mapping())
     [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle"])
 
     
@@ -81,7 +103,6 @@ def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename):
     biomarkers['knee_angles_left'] = knee_biomarkers['left']
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
     biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
-
-    helper.plot_biomarkers(biomarkers, "heel_to_toe")
+    #helper.plot_biomarkers(biomarkers, "heel_to_toe")
     save_biomarkers_json(biomarkers, output_dir, filename)
     return biomarkers
