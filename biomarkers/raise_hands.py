@@ -131,14 +131,29 @@ def detect_raise_events(left_wrist, right_wrist,
 
 
 def find_hand_peaks(signal, prominence, width_rel):
-    """Find peaks (maxima) in a single hand's signal and return their boundaries"""
+    """
+    Find peaks (maxima) or plateaus in a single hand's signal 
+    and return their boundaries.
+    """
     
     amplitude = signal.max() - signal.min()
+    # Handle flatline signal
+    if amplitude == 0:
+        return []
+        
     prom = amplitude * prominence
     
     # Find peaks (maxima) directly in the original signal
-    # This will find the "dips" at Y=0.0
     peak_indices, _ = find_peaks(signal, prominence=prom)
+    
+    # If no "pointy" peaks are found, it might be a flat plateau.
+    # Check if the global max is prominent over the global min.
+    if len(peak_indices) == 0 and (signal.max() - signal.min()) >= prom:
+        # It is a prominent plateau.
+        # Seed the peak_indices with the first max point.
+        # 'peak_widths' will then find the edges of the whole plateau.
+        peak_indices = [np.argmax(signal)]
+        
     if len(peak_indices) == 0:
         return []
 
