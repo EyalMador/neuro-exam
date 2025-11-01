@@ -130,7 +130,6 @@ def stride_lengths(heel, toe, steps, foot):
             foot_size_frame2 = foot_size_pixels(heel2, toe2)
             avg_foot_size = (foot_size_frame1 + foot_size_frame2) / 2
             
-            # Normalized stride length
             stride_length_normalized = stride_length_raw / avg_foot_size if avg_foot_size > 0 else 0
             stride_lengths_normalized.append(stride_length_normalized)
     
