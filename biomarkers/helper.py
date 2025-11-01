@@ -76,22 +76,7 @@ def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
 
 
 def extract_traj(coords_dict, landmarks_names):
-    """
-    Extract trajectory dictionaries for multiple landmarks.
-    
-    Parameters
-    ----------
-    coords_dict : dict
-        Root dictionary from JSON (with 'pose', 'hands', etc.)
-    landmarks_names : list of str
-        Landmark names to extract, e.g. ["LHeel", "RHeel", "LBigToe"]
 
-    Returns
-    -------
-    list of dict
-        List of dictionaries, one per landmark.
-        Each dict has frame numbers as keys: {"0": {"x": ..., "y": ..., "z": ...}, "1": {...}, ...}
-    """
     trajectories = []
 
     for landmark_name in landmarks_names:
@@ -122,7 +107,7 @@ def extract_traj(coords_dict, landmarks_names):
 
 
 
-def rtm_indices_to_names(coords_dict, rtm_mapping):
+def indices_to_names(coords_dict, rtm_mapping):
     new_coords_dict = {"pose": {}, "hands": coords_dict.get("hands", {})}
 
     # coords_dict["pose"] contains body parts directly (BODY_0, BODY_1, etc.)
@@ -133,6 +118,7 @@ def rtm_indices_to_names(coords_dict, rtm_mapping):
         new_coords_dict["pose"][joint_name] = frames_dict
 
     return new_coords_dict
+
 
 
 
@@ -192,11 +178,7 @@ def smooth_datapoints(datapoints, method='savgol', window_length=11, polyorder=3
 
 
 def datapoints_local_minimums(data, prominence=0.01, distance=10, 
-                              smooth=True, window_length=5):
-    """
-    Detect local minimums in heel-to-toe distance data.
-    This represents moments when heel and toe are closest (foot flat on ground).
-    """
+                              smooth=True, window_length=11):
     
     minimums = {
         'left': {},
