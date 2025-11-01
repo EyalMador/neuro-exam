@@ -103,6 +103,7 @@ def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename):
     biomarkers['knee_angles_left'] = knee_biomarkers['left']
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
     biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
+
     #helper.plot_biomarkers(biomarkers, "heel_to_toe")
     save_biomarkers_json(biomarkers, output_dir, filename)
     return biomarkers

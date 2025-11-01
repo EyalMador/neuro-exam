@@ -69,7 +69,7 @@ def detect_raise_events(left_wrist, right_wrist,
                         prominence=0.15,
                         width_rel=0.5,
                         smooth_win=7,
-                        merge_gap=20):
+                        merge_gap=15):
     """
     Detect raise-hand events using valley detection.
     Logic:
@@ -88,6 +88,9 @@ def detect_raise_events(left_wrist, right_wrist,
     # Find valleys (minima) for each hand by inverting the signal
     left_events = find_hand_valleys(ly, prominence, width_rel)
     right_events = find_hand_valleys(ry, prominence, width_rel)
+    
+    print(f"right events: {right_events}")
+    print(f"left events: {left_events}")
     
     # Combine all events from both hands
     all_events = []
@@ -127,31 +130,34 @@ def detect_raise_events(left_wrist, right_wrist,
     return events
 
 
-def find_hand_valleys(signal, prominence, width_rel):
-    """Find valleys (minima) in a single hand's signal and return their boundaries"""
-    # Invert signal to find valleys as peaks
-    inverted = -signal
-    
+def find_hand_valleys(signal, prominence=0.15, width_rel=0.5):
+    """
+    Find valleys (local minima) and return start–end intervals
+    that actually correspond to the low regions.
+    """
+    inv = -signal
     amplitude = signal.max() - signal.min()
     prom = amplitude * prominence
-    
-    peaks, _ = find_peaks(inverted, prominence=prom)
-    
-    if len(peaks) == 0:
+
+    valley_idxs, _ = find_peaks(inv, prominence=prom)
+    if len(valley_idxs) == 0:
         return []
-    
-    # Get peak widths to find start/end boundaries
-    widths, h_eval, left_ips, right_ips = peak_widths(
-        inverted, peaks, rel_height=width_rel
-    )
-    
-    events = []
-    for i in range(len(peaks)):
-        start = max(0, int(np.floor(left_ips[i])))
-        end = min(len(signal) - 1, int(np.ceil(right_ips[i])))
-        events.append((start, end))
-    
-    return events
+
+    valleys = []
+    for v in valley_idxs:
+        # --- move left until slope flips (signal starts increasing again)
+        left = v
+        while left > 0 and signal[left - 1] <= signal[left]:
+            left -= 1
+
+        # --- move right until slope flips (signal starts increasing)
+        right = v
+        while right < len(signal) - 1 and signal[right + 1] <= signal[right]:
+            right += 1
+
+        valleys.append((left, right))
+
+    return valleys
 
 
 def symmetry_biomarker(events, left_wrist, right_wrist):
