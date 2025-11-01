@@ -61,9 +61,38 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
     distance_data = heel_toe_distance(left_heel, right_heel, left_toe, right_toe)
     distances_minimums = helper.datapoints_local_minimums(distance_data)
     
-    if len(distances_minimums['left']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
+    if len(distances_minimums['left']['min_frames']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
         return {'error': 'No data detected'}
 
+    # (look at 5-10 frames after to confirm it's a real valley)
+    window = 8
+    
+    for side in ['left', 'right']:
+        min_indices = distances_minimums[side]['min_indices']
+        min_values = distances_minimums[side]['min_values']
+        min_frames = distances_minimums[side]['min_frames']
+        smoothed = distances_minimums[side]['smoothed_distances']
+        
+        valid_indices = []
+        
+        for i, min_idx in enumerate(min_indices):
+            if min_idx + window < len(smoothed):
+                # Get the average value after the minimum
+                after_window = smoothed[min_idx : min_idx + window]
+                avg_after = np.mean(after_window)
+                
+                # Only keep if distance increases significantly after minimum
+                # (meaning it's a real valley, not just noise)
+                if avg_after > min_values[i]:
+                    valid_indices.append(i)
+        
+        # Keep only valid minimums
+        distances_minimums[side]['min_indices'] = min_indices[valid_indices]
+        distances_minimums[side]['min_values'] = min_values[valid_indices]
+        distances_minimums[side]['min_frames'] = min_frames[valid_indices]
+
+    if len(distances_minimums['left']['min_values']) == 0 or len(distances_minimums['right']['min_values']) == 0:
+        return {'error': 'No data detected'}
 
     statistics = {}
     for side in ['left', 'right']:
@@ -76,7 +105,7 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
                 'max': float(np.max(side_distances_minimums)) if len(side_distances_minimums) > 0 else None,
                 'std': float(np.std(side_distances_minimums)) if len(side_distances_minimums) > 0 else None,
                 'count': len(side_distances_minimums),
-                'all': side_distances_minimums,
+                'all': list(side_distances_minimums),
                 'all_distances': distance_data
 
             }
