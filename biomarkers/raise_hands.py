@@ -67,7 +67,7 @@ def smooth_signal(sig, window=5):
 
 def detect_raise_events(left_wrist, right_wrist,
                         prominence=0.15,
-                        width_rel=0.2,
+                        width_rel=0.6,
                         smooth_win=7,
                         merge_gap=15):
     """
@@ -151,7 +151,7 @@ def find_hand_peaks(signal, prominence, width_rel):
         peak_indices = [np.argmax(signal)]
         
         # 0.1 means "measure at 90% of the peak's height".
-        current_width_rel = 0.1
+        current_width_rel = 0.9
             
     if len(peak_indices) == 0:
         return []
