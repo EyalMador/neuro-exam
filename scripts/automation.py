@@ -55,8 +55,10 @@ def extract_landmarks(test_type, is_test, video_name=None):
     if not filename.lower().endswith(video_formats):
       continue
     if filename_json not in file_list:
+      landmark_videos_dir = video_dir_path + f'/Landmark Videos'
+      create_temp_folder([landmark_videos_dir])
       video_path = video_dir_path + f'/{filename}'
-      run_extraction_with_args(video_path, video_dir_path, 'rtmlib', 'body26', filename, LANDMARKS_FOLDER_PATH)
+      run_extraction_with_args(video_path, video_dir_path, 'rtmlib', 'body26', filename, landmark_videos_dir)
     else:
       print(f"{filename} landmarks already extracted, skipping...")
     copy_file(video_dir_path, LANDMARKS_FOLDER_PATH, filename_json)      
