@@ -80,7 +80,7 @@ def detect_raise_events(left_wrist, right_wrist,
     frames = sorted(set(left_wrist.keys()) & set(right_wrist.keys()), key=int)
     if not frames:
         return {}
-    
+    print("check something")
     # Extract and smooth y positions
     ly = smooth_signal(np.array([left_wrist[f]["y"] for f in frames]), smooth_win)
     ry = smooth_signal(np.array([right_wrist[f]["y"] for f in frames]), smooth_win)
