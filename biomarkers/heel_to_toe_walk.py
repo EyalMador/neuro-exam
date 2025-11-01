@@ -49,7 +49,7 @@ def heel_toe_distance(left_heel, right_heel, left_toe, right_toe):
         
         distances['left'][frame] = float(left_distance)
         distances['right'][frame] = float(right_distance)
-        plot_heel_toe_distance(distances)
+    plot_heel_toe_distance(distances)
 
   
     return distances
