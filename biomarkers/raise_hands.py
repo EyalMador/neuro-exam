@@ -130,31 +130,32 @@ def detect_raise_events(left_wrist, right_wrist,
     return events
 
 
-def find_hand_valleys(signal, prominence, width_rel):
-    """Find valleys (minima) in a single hand's signal and return their boundaries"""
-    # Invert signal to find valleys as peaks
-    inverted = -signal
-    
+def find_hand_valleys(signal, prominence=0.15, width_rel=0.5):
+    """
+    Find valleys (local minima) and return start–end intervals
+    that actually correspond to the low regions.
+    """
+    inv = -signal
     amplitude = signal.max() - signal.min()
     prom = amplitude * prominence
-    
-    # Find minima (peaks in inverted)
-    valley_indices, _ = find_peaks(inverted, prominence=prom)
-    if len(valley_indices) == 0:
+
+    valley_idxs, _ = find_peaks(inv, prominence=prom)
+    if len(valley_idxs) == 0:
         return []
 
-    # Compute widths relative to the original signal (not inverted)
-    _, _, left_ips, right_ips = peak_widths(
-        signal.max() - signal,  # flip vertically around top
-        valley_indices,
-        rel_height=width_rel
-    )
-
     valleys = []
-    for i in range(len(valley_indices)):
-        start = max(0, int(np.floor(left_ips[i])))
-        end = min(len(signal) - 1, int(np.ceil(right_ips[i])))
-        valleys.append((start, end))
+    for v in valley_idxs:
+        # --- move left until slope flips (signal starts increasing again)
+        left = v
+        while left > 0 and signal[left - 1] <= signal[left]:
+            left -= 1
+
+        # --- move right until slope flips (signal starts increasing)
+        right = v
+        while right < len(signal) - 1 and signal[right + 1] <= signal[right]:
+            right += 1
+
+        valleys.append((left, right))
 
     return valleys
 
