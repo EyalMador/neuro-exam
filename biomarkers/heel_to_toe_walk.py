@@ -55,15 +55,48 @@ def heel_toe_distance(left_heel, right_heel, left_toe, right_toe):
     return distances
 
 
-
 def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_toe):
 
     distance_data = heel_toe_distance(left_heel, right_heel, left_toe, right_toe)
     distances_minimums = helper.datapoints_local_minimums(distance_data)
     
-    if len(distances_minimums['left']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
+    if len(distances_minimums['left']['min_frames']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
         return {'error': 'No data detected'}
 
+    # Filter minimums: only keep if there's a clear crossing pattern
+    # (i.e., the other line is significantly higher at that point)
+    
+    for side in ['left', 'right']:
+        other_side = 'right' if side == 'left' else 'left'
+        
+        min_indices = distances_minimums[side]['min_indices']
+        min_values = distances_minimums[side]['min_values']
+        left_smoothed = distances_minimums['left']['smoothed_distances']
+        right_smoothed = distances_minimums['right']['smoothed_distances']
+        
+        valid_indices = []
+        
+        for i, min_idx in enumerate(min_indices):
+            # At this minimum point, check if the other line is significantly higher
+            if side == 'left':
+                current_min = left_smoothed[min_idx]
+                other_val = right_smoothed[min_idx]
+            else:
+                current_min = right_smoothed[min_idx]
+                other_val = left_smoothed[min_idx]
+            
+            # Only keep if other line is at least 30 pixels higher (threshold)
+            # This filters out noise crossings and keeps only clear crossing events
+            if (other_val - current_min) > 30:
+                valid_indices.append(i)
+        
+        # Keep only valid minimums
+        distances_minimums[side]['min_indices'] = min_indices[valid_indices]
+        distances_minimums[side]['min_values'] = min_values[valid_indices]
+        distances_minimums[side]['min_frames'] = distances_minimums[side]['min_frames'][valid_indices]
+
+    if len(distances_minimums['left']['min_values']) == 0 or len(distances_minimums['right']['min_values']) == 0:
+        return {'error': 'No data detected'}
 
     statistics = {}
     for side in ['left', 'right']:
@@ -76,14 +109,13 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
                 'max': float(np.max(side_distances_minimums)) if len(side_distances_minimums) > 0 else None,
                 'std': float(np.std(side_distances_minimums)) if len(side_distances_minimums) > 0 else None,
                 'count': len(side_distances_minimums),
-                'all': side_distances_minimums,
+                'all': list(side_distances_minimums),
                 'all_distances': distance_data
 
             }
     statistics['symmetry_score'] = helper.calc_symmetry(statistics['left'], statistics['right'])
         
     return statistics
-
 
 def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename):
 
