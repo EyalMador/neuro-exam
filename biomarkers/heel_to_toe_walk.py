@@ -102,7 +102,7 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
     # Calculate intervals between consecutive minima
     regularity_scores = {}
     for side in ['left', 'right']:
-        min_frames = distances_minimums[side]['min_frames']
+        min_frames = distances_minimums[side]['min_frames'].astype(int)
         if len(min_frames) > 2:
             intervals = np.diff(min_frames)
             # Low std in intervals = regular pattern = normal gait
