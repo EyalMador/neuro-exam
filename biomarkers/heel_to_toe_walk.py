@@ -64,7 +64,6 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
         return {'error': 'No data detected'}
 
     # Filter minimums: only keep if there's a clear crossing pattern
-    # (i.e., the other line is significantly higher at that point)
     
     for side in ['left', 'right']:
         other_side = 'right' if side == 'left' else 'left'
@@ -148,7 +147,9 @@ def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename):
     biomarkers["htt_distances_left"] = htt_distances['left']
     biomarkers["htt_distances_right"] = htt_distances['right']
     biomarkers["htt_distances_symmetry"] = htt_distances['symmetry_score']
-
+    biomarkers["htt_distances_regularity"] = htt_distances['regularity_mean']
+    biomarkers["htt_distances_left_regularity"] = htt_distances['left']['regularity']
+    biomarkers["htt_distances_right_regularity"] = htt_distances['right']['regularity']
 
     biomarkers['knee_angles_left'] = knee_biomarkers['left']
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
