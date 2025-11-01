@@ -67,7 +67,7 @@ def smooth_signal(sig, window=5):
 
 def detect_raise_events(left_wrist, right_wrist,
                         prominence=0.15,
-                        width_rel=0.5,
+                        width_rel=0.2,
                         smooth_win=7,
                         merge_gap=15):
     """
