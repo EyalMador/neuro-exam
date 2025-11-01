@@ -236,11 +236,13 @@ def calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, rig
     
     return knee_angles
 
-
 def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
 
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
-    # plot_knee_angles(knee_angles)
+    
+    # Plot knee angles
+    plot_knee_angles(knee_angles)
+    
     minimum_angles = helper.datapoints_local_minimums(knee_angles)
 
     all_angles = knee_angles['all']
@@ -248,6 +250,17 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
     if not all_angles:
         return {'error': 'No knee angles detected'}
 
+    # Calculate regularity for knee angles (like we did for heel-toe)
+    regularity_scores = {}
+    for side in ['left', 'right']:
+        min_frames = minimum_angles[side]['min_frames'].astype(int)
+        if len(min_frames) > 2:
+            intervals = np.diff(min_frames)
+            interval_std = np.std(intervals)
+            interval_mean = np.mean(intervals)
+            regularity_scores[side] = interval_std / interval_mean if interval_mean > 0 else 999
+        else:
+            regularity_scores[side] = 0
 
     statistics = {}
     for side in ['left', 'right']:
@@ -260,11 +273,12 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
                 'max': float(np.max(side_minimums)) if len(side_minimums) > 0 else None,
                 'std': float(np.std(side_minimums)) if len(side_minimums) > 0 else None,
                 'count': len(side_minimums),
-                'all': side_minimums,
-
+                'all': list(side_minimums),
+                'regularity': float(regularity_scores[side])
             }
+    
     statistics['symmetry_score'] = helper.calc_symmetry(statistics['left'], statistics['right'])
-
+    statistics['regularity_mean'] = float(np.mean([regularity_scores['left'], regularity_scores['right']]))
         
     return statistics
 
@@ -284,11 +298,11 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers['knee_angles_left'] = knee_biomarkers['left']
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
     biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
+    biomarkers['knee_regularity'] = knee_biomarkers['regularity_mean']
+    biomarkers['knee_regularity_left'] = knee_biomarkers['left']['regularity']
+    biomarkers['knee_regularity_right'] = knee_biomarkers['right']['regularity']
 
-    helper.plot_biomarkers(biomarkers)
+    helper.plot_biomarkers(biomarkers, "straight_walk")
     save_biomarkers_json(biomarkers, output_dir, filename)
 
     return biomarkers
-
-
-
