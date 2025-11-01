@@ -47,8 +47,6 @@ def plot_knee_angles(knee_angles):
 def is_foot_flat(heel, toe, threshold = 0.5):
 
     foot_size = foot_size_pixels(heel, toe)
-    print("distance " + str(abs(heel['y'] - toe['y'])))
-    print(f"foot size {foot_size}")
     return ((abs(heel['y'] - toe['y']) /foot_size) < threshold )
 
 def foot_size_pixels(heel, toe):
@@ -92,7 +90,6 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
             if not foot_is_flat and not in_step:
                 in_step = True
                 step_start = frame
-                print(f"start step frame: {frame_str}")
 
             #step end
             elif foot_is_flat and in_step:
@@ -100,7 +97,6 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
                 if step_start is not None:
                     steps[foot].append((step_start, frame))
                 step_start = None
-                print(f"end step frame: {frame_str}")
 
     return steps
 
