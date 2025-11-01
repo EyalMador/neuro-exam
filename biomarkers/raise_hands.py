@@ -130,33 +130,48 @@ def detect_raise_events(left_wrist, right_wrist,
     return events
 
 
-def find_hand_valleys(signal, prominence, width_rel):
-    """Find valleys (minima) in a single hand's signal and return their boundaries"""
-    # Invert signal to find valleys as peaks
-    inverted = -signal
-    
-    amplitude = signal.max() - signal.min()
-    prom = amplitude * prominence
-    
-    # Find minima (peaks in inverted)
-    valley_indices, _ = find_peaks(inverted, prominence=prom)
-    if len(valley_indices) == 0:
+def find_hand_valleys(signal, prominence=0.15, width_rel=0.03):
+    """
+    Find valleys (minima) of `signal` and return inclusive (start, end) indices.
+    - `prominence`: fraction of signal range used as min prominence
+    - `width_rel`: minimum valley width as a fraction of series length
+    """
+    y = np.asarray(signal, dtype=float)
+    n = len(y)
+    if n == 0:
         return []
 
-    # Compute widths relative to the original signal (not inverted)
-    widths, h_eval, left_ips, right_ips = peak_widths(
-        signal.max() - signal,  # flip vertically around top
-        valley_indices,
-        rel_height=width_rel
-    )
+    inv = -y  # valleys -> peaks
+    prom = (y.max() - y.min()) * float(prominence)
+    min_width = max(1, int(n * float(width_rel)))  # width in samples
 
-    valleys = []
-    for i in range(len(valley_indices)):
-        start = max(0, int(np.floor(left_ips[i])))
-        end = min(len(signal) - 1, int(np.ceil(right_ips[i])))
-        valleys.append((start, end))
+    # detect valleys as peaks in the inverted signal
+    peaks, props = find_peaks(inv, prominence=prom, width=min_width)
+    if peaks.size == 0:
+        return []
 
-    return valleys
+    # boundaries where the inverted peak meets its local baseline
+    _, _, left_ips, right_ips = peak_widths(inv, peaks, rel_height=1.0)
+
+    # build inclusive intervals
+    intervals = []
+    for l, r in zip(left_ips, right_ips):
+        s = max(0, int(np.floor(l)))
+        e = min(n - 1, int(np.ceil(r)))
+        if s <= e:
+            intervals.append((s, e))
+
+    # merge overlaps/adjacent
+    if not intervals:
+        return []
+    intervals.sort()
+    merged = [list(intervals[0])]
+    for s, e in intervals[1:]:
+        if s <= merged[-1][1] + 1:
+            merged[-1][1] = max(merged[-1][1], e)
+        else:
+            merged.append([s, e])
+    return [tuple(x) for x in merged]
 
 
 def symmetry_biomarker(events, left_wrist, right_wrist):
