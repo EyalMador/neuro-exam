@@ -138,23 +138,25 @@ def find_hand_valleys(signal, prominence, width_rel):
     amplitude = signal.max() - signal.min()
     prom = amplitude * prominence
     
-    peaks, _ = find_peaks(inverted, prominence=prom)
-    
-    if len(peaks) == 0:
+    # Find minima (peaks in inverted)
+    valley_indices, _ = find_peaks(inverted, prominence=prom)
+    if len(valley_indices) == 0:
         return []
-    
-    # Get peak widths to find start/end boundaries
-    widths, h_eval, left_ips, right_ips = peak_widths(
-        inverted, peaks, rel_height=width_rel
+
+    # Compute widths relative to the original signal (not inverted)
+    _, _, left_ips, right_ips = peak_widths(
+        signal.max() - signal,  # flip vertically around top
+        valley_indices,
+        rel_height=width_rel
     )
-    
-    events = []
-    for i in range(len(peaks)):
+
+    valleys = []
+    for i in range(len(valley_indices)):
         start = max(0, int(np.floor(left_ips[i])))
         end = min(len(signal) - 1, int(np.ceil(right_ips[i])))
-        events.append((start, end))
-    
-    return events
+        valleys.append((start, end))
+
+    return valleys
 
 
 def symmetry_biomarker(events, left_wrist, right_wrist):
