@@ -101,29 +101,114 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
     return steps
 
 
-def stride_lengths(heel, steps, foot):
-    stride_lengths = []
+def stride_lengths(heel, toe, steps, foot):
+    stride_lengths_raw = []
+    stride_lengths_normalized = []
     
     foot_steps = steps[foot]
     if len(foot_steps) < 2:
-        return stride_lengths
+        return stride_lengths_raw, stride_lengths_normalized
     
     for i in range(len(foot_steps) - 1):
         frame1 = str(foot_steps[i][0])
-        #frame2 = str(foot_steps[i + 1][0]) #todo: i or i++ ?
         frame2 = str(foot_steps[i][1])
         
-        if frame1 in heel and frame2 in heel:
+        if frame1 in heel and frame2 in heel and frame1 in toe and frame2 in toe:
             heel1 = heel[frame1]
             heel2 = heel[frame2]
+            toe1 = toe[frame1]
+            toe2 = toe[frame2]
             
+            # Raw stride length (horizontal distance)
             h1 = np.array([heel1['x'], 0, 0])
             h2 = np.array([heel2['x'], 0, 0])
-
-            stride_length = np.linalg.norm(h2 - h1)
-            stride_lengths.append(stride_length)
+            stride_length_raw = np.linalg.norm(h2 - h1)
+            stride_lengths_raw.append(stride_length_raw)
+            
+            # Foot size for normalization (average of both frames)
+            foot_size_frame1 = foot_size_pixels(heel1, toe1)
+            foot_size_frame2 = foot_size_pixels(heel2, toe2)
+            avg_foot_size = (foot_size_frame1 + foot_size_frame2) / 2
+            
+            # Normalized stride length
+            stride_length_normalized = stride_length_raw / avg_foot_size if avg_foot_size > 0 else 0
+            stride_lengths_normalized.append(stride_length_normalized)
     
-    return stride_lengths
+    return stride_lengths_raw, stride_lengths_normalized
+
+
+def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
+    steps = detect_steps(left_heel, left_toe, right_heel, right_toe)
+    
+    # stride lengths (both raw and normalized)
+    left_strides_raw, left_strides_norm = stride_lengths(left_heel, left_toe, steps, 'left')
+    right_strides_raw, right_strides_norm = stride_lengths(right_heel, right_toe, steps, 'right')
+    
+    strides_norm = left_strides_norm + right_strides_norm
+    
+    # step times
+    step_times_data = step_times(steps, fps)
+    step_times_all = step_times_data['all']
+    
+    # empty cases
+    if not strides_norm or not step_times_all:
+        return {
+            'error': 'No steps detected',
+            'step_size': {},
+            'step_time': {}
+        }
+    
+    # Calculate regularity for normalized step sizes
+    step_size_regularity = 0
+    if len(strides_norm) > 2:
+        strides_array = np.array(strides_norm)
+        step_size_std = np.std(strides_array)
+        step_size_mean = np.mean(strides_array)
+        step_size_regularity = step_size_std / step_size_mean if step_size_mean > 0 else 999
+    
+    # Calculate regularity for step times
+    step_time_regularity = 0
+    if len(step_times_all) > 2:
+        times_array = np.array(step_times_all)
+        step_time_std = np.std(times_array)
+        step_time_mean = np.mean(times_array)
+        step_time_regularity = step_time_std / step_time_mean if step_time_mean > 0 else 999
+    
+    # Calculate left-right asymmetry in normalized step sizes
+    left_strides_array = np.array(left_strides_norm) if left_strides_norm else np.array([0])
+    right_strides_array = np.array(right_strides_norm) if right_strides_norm else np.array([0])
+    
+    left_mean = np.mean(left_strides_array) if len(left_strides_array) > 0 else 0
+    right_mean = np.mean(right_strides_array) if len(right_strides_array) > 0 else 0
+    
+    # Asymmetry index
+    step_asymmetry = 0
+    if (left_mean + right_mean) > 0:
+        step_asymmetry = abs(left_mean - right_mean) / ((left_mean + right_mean) / 2) if ((left_mean + right_mean) / 2) > 0 else 999
+    
+    return {
+        'step_size': {
+            'mean': float(np.mean(strides_norm)),
+            'median': float(np.median(strides_norm)),
+            'min': float(np.min(strides_norm)),
+            'max': float(np.max(strides_norm)),
+            'std': float(np.std(strides_norm)),
+            'count': len(strides_norm),
+            'all': strides_norm,
+            'regularity': float(step_size_regularity),
+            'asymmetry': float(step_asymmetry)
+        },
+        'step_time': {
+            'mean': float(np.mean(step_times_all)),
+            'median': float(np.median(step_times_all)),
+            'min': float(np.min(step_times_all)),
+            'max': float(np.max(step_times_all)),
+            'std': float(np.std(step_times_all)),
+            'count': len(step_times_all),
+            'all': step_times_all,
+            'regularity': float(step_time_regularity)
+        }
+    }
 
 
 def step_times(steps, fps):
@@ -257,6 +342,11 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
     # Plot knee angles
     plot_knee_angles(knee_angles)
     
+    # Filter out unrealistic angles (< 90° or > 180° indicate errors/abnormality)
+    for side in ['left', 'right', 'all']:
+        knee_angles[side] = {frame: angle for frame, angle in knee_angles[side].items() 
+                             if 90 <= angle <= 180}
+    
     minimum_angles = helper.datapoints_local_minimums(knee_angles)
 
     all_angles = knee_angles['all']
@@ -264,7 +354,7 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
     if not all_angles:
         return {'error': 'No knee angles detected'}
 
-    # Calculate regularity for knee angles (like we did for heel-toe)
+    # Calculate regularity for knee angles
     regularity_scores = {}
     min_angle_values = {}
     
@@ -280,7 +370,7 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
         else:
             regularity_scores[side] = 0
         
-        # Track minimum angle values (abnormal gait has unrealistically low angles)
+        # Track minimum angle values
         if len(min_values) > 0:
             min_angle_values[side] = float(np.min(min_values))
         else:
@@ -289,6 +379,13 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
     statistics = {}
     for side in ['left', 'right']:
         side_minimums = minimum_angles[side]['min_values']
+        
+        # Calculate amplitude (range of motion) - how much knee bends
+        all_angles_side = knee_angles[side].values()
+        if len(all_angles_side) > 0:
+            amplitude = float(max(all_angles_side) - min(all_angles_side))
+        else:
+            amplitude = 0
 
         statistics[side] = {
                 'mean': float(np.mean(side_minimums)) if len(side_minimums) > 0 else None,
@@ -299,11 +396,21 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
                 'count': len(side_minimums),
                 'all': list(side_minimums),
                 'regularity': float(regularity_scores[side]),
-                'min_angle': min_angle_values[side]
+                'min_angle': min_angle_values[side],
+                'amplitude': amplitude
             }
     
     statistics['symmetry_score'] = helper.calc_symmetry(statistics['left'], statistics['right'])
     statistics['regularity_mean'] = float(np.mean([regularity_scores['left'], regularity_scores['right']]))
+    
+    # Amplitude symmetry - abnormal if one knee bends much more than the other
+    left_amp = statistics['left']['amplitude']
+    right_amp = statistics['right']['amplitude']
+    if (left_amp + right_amp) > 0:
+        amplitude_asymmetry = abs(left_amp - right_amp) / ((left_amp + right_amp) / 2)
+    else:
+        amplitude_asymmetry = 0
+    statistics['amplitude_asymmetry'] = float(amplitude_asymmetry)
         
     return statistics
 
@@ -317,21 +424,27 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
     knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
 
+    # Step size biomarkers (now normalized by foot size)
     biomarkers["step_size"] = steps_biomarkers["step_size"]
-    biomarkers["step_time"] = steps_biomarkers["step_time"]
     biomarkers["step_size_regularity"] = steps_biomarkers["step_size"]["regularity"]
+    biomarkers["step_size_asymmetry"] = steps_biomarkers["step_size"].get("asymmetry", 999)
+    biomarkers["step_time"] = steps_biomarkers["step_time"]
     biomarkers["step_time_regularity"] = steps_biomarkers["step_time"]["regularity"]
 
+    # Knee angle biomarkers
     biomarkers['knee_angles_left'] = knee_biomarkers['left']
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
     biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
-    biomarkers['knee_regularity'] = knee_biomarkers['regularity_mean']
+    biomarkers['knee_regularity_mean'] = knee_biomarkers['regularity_mean']
     biomarkers['knee_regularity_left'] = knee_biomarkers['left']['regularity']
     biomarkers['knee_regularity_right'] = knee_biomarkers['right']['regularity']
-    biomarkers['knee_min_angle_left'] = knee_biomarkers['left'].get('min_angle', 180)
-    biomarkers['knee_min_angle_right'] = knee_biomarkers['right'].get('min_angle', 180)
+    biomarkers['knee_min_angle_left'] = knee_biomarkers['left']['min_angle']
+    biomarkers['knee_min_angle_right'] = knee_biomarkers['right']['min_angle']
+    biomarkers['knee_amplitude_left'] = knee_biomarkers['left']['amplitude']
+    biomarkers['knee_amplitude_right'] = knee_biomarkers['right']['amplitude']
+    biomarkers['knee_amplitude_asymmetry'] = knee_biomarkers['amplitude_asymmetry']
 
-    helper.plot_biomarkers(biomarkers, "straight_walk")
+    #helper.plot_biomarkers(biomarkers, "straight_walk")
     save_biomarkers_json(biomarkers, output_dir, filename)
 
     return biomarkers
