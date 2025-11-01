@@ -86,8 +86,8 @@ def detect_raise_events(left_wrist, right_wrist,
     ry = smooth_signal(np.array([right_wrist[f]["y"] for f in frames]), smooth_win)
     
     # Find valleys (minima) for each hand by inverting the signal
-    left_events = find_hand_valleys(ly, prominence, width_rel)
-    right_events = find_hand_valleys(ry, prominence, width_rel)
+    left_events = find_hand_peaks(ly, prominence, width_rel)
+    right_events = find_hand_peaks(ry, prominence, width_rel)
     
     print(f"right events: {right_events}")
     print(f"left events: {left_events}")
@@ -130,48 +130,32 @@ def detect_raise_events(left_wrist, right_wrist,
     return events
 
 
-def find_hand_valleys(signal, prominence=0.15, width_rel=0.03):
-    """
-    Find valleys (minima) of `signal` and return inclusive (start, end) indices.
-    - `prominence`: fraction of signal range used as min prominence
-    - `width_rel`: minimum valley width as a fraction of series length
-    """
-    y = np.asarray(signal, dtype=float)
-    n = len(y)
-    if n == 0:
+def find_hand_peaks(signal, prominence, width_rel):
+    """Find peaks (maxima) in a single hand's signal and return their boundaries"""
+    
+    amplitude = signal.max() - signal.min()
+    prom = amplitude * prominence
+    
+    # Find peaks (maxima) directly in the original signal
+    # This will find the "dips" at Y=0.0
+    peak_indices, _ = find_peaks(signal, prominence=prom)
+    if len(peak_indices) == 0:
         return []
 
-    inv = -y  # valleys -> peaks
-    prom = (y.max() - y.min()) * float(prominence)
-    min_width = max(1, int(n * float(width_rel)))  # width in samples
+    # Compute widths on the original signal
+    widths, h_eval, left_ips, right_ips = peak_widths(
+        signal,  # Use the original signal
+        peak_indices,
+        rel_height=width_rel
+    )
 
-    # detect valleys as peaks in the inverted signal
-    peaks, props = find_peaks(inv, prominence=prom, width=min_width)
-    if peaks.size == 0:
-        return []
+    peaks = []
+    for i in range(len(peak_indices)):
+        start = max(0, int(np.floor(left_ips[i])))
+        end = min(len(signal) - 1, int(np.ceil(right_ips[i])))
+        peaks.append((start, end))
 
-    # boundaries where the inverted peak meets its local baseline
-    _, _, left_ips, right_ips = peak_widths(inv, peaks, rel_height=1.0)
-
-    # build inclusive intervals
-    intervals = []
-    for l, r in zip(left_ips, right_ips):
-        s = max(0, int(np.floor(l)))
-        e = min(n - 1, int(np.ceil(r)))
-        if s <= e:
-            intervals.append((s, e))
-
-    # merge overlaps/adjacent
-    if not intervals:
-        return []
-    intervals.sort()
-    merged = [list(intervals[0])]
-    for s, e in intervals[1:]:
-        if s <= merged[-1][1] + 1:
-            merged[-1][1] = max(merged[-1][1], e)
-        else:
-            merged.append([s, e])
-    return [tuple(x) for x in merged]
+    return peaks
 
 
 def symmetry_biomarker(events, left_wrist, right_wrist):
