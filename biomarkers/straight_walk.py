@@ -225,34 +225,37 @@ def step_times(steps, fps):
     
     return step_times
 
-
 def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
     steps = detect_steps(left_heel, left_toe, right_heel, right_toe)
     
-    # stride lengths
-    left_strides = stride_lengths(left_heel, left_toe, steps, 'left')
-    right_strides = stride_lengths(right_heel, right_toe, steps, 'right')
-    strides = left_strides + right_strides
+    # stride lengths (both raw and normalized)
+    left_strides_raw, left_strides_norm = stride_lengths(left_heel, left_toe, steps, 'left')
+    right_strides_raw, right_strides_norm = stride_lengths(right_heel, right_toe, steps, 'right')
+    
+    strides_norm = left_strides_norm + right_strides_norm
     
     # step times
     step_times_data = step_times(steps, fps)
     step_times_all = step_times_data['all']
     
     # empty cases
-    if not strides or not step_times_all:
+    if not strides_norm or not step_times_all:
         return {
             'error': 'No steps detected',
             'step_size': {},
             'step_time': {}
         }
     
-    # Calculate regularity for step sizes
+    # Convert to float lists (not numpy arrays with 'all')
+    strides_norm = [float(x) for x in strides_norm]
+    step_times_all = [float(x) for x in step_times_all]
+    
+    # Calculate regularity for normalized step sizes
     step_size_regularity = 0
-    if len(strides) > 2:
-        strides_array = np.array(strides)
+    if len(strides_norm) > 2:
+        strides_array = np.array(strides_norm)
         step_size_std = np.std(strides_array)
         step_size_mean = np.mean(strides_array)
-        # Coefficient of variation: low = regular, high = irregular
         step_size_regularity = step_size_std / step_size_mean if step_size_mean > 0 else 999
     
     # Calculate regularity for step times
@@ -263,16 +266,29 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
         step_time_mean = np.mean(times_array)
         step_time_regularity = step_time_std / step_time_mean if step_time_mean > 0 else 999
     
+    # Calculate left-right asymmetry in normalized step sizes
+    left_strides_array = np.array(left_strides_norm) if left_strides_norm else np.array([0.0])
+    right_strides_array = np.array(right_strides_norm) if right_strides_norm else np.array([0.0])
+    
+    left_mean = np.mean(left_strides_array) if len(left_strides_array) > 0 else 0
+    right_mean = np.mean(right_strides_array) if len(right_strides_array) > 0 else 0
+    
+    # Asymmetry index
+    step_asymmetry = 0
+    if (left_mean + right_mean) > 0:
+        step_asymmetry = abs(left_mean - right_mean) / ((left_mean + right_mean) / 2) if ((left_mean + right_mean) / 2) > 0 else 999
+    
     return {
         'step_size': {
-            'mean': float(np.mean(strides)),
-            'median': float(np.median(strides)),
-            'min': float(np.min(strides)),
-            'max': float(np.max(strides)),
-            'std': float(np.std(strides)),
-            'count': len(strides),
-            'all': strides,
-            'regularity': float(step_size_regularity)
+            'mean': float(np.mean(strides_norm)),
+            'median': float(np.median(strides_norm)),
+            'min': float(np.min(strides_norm)),
+            'max': float(np.max(strides_norm)),
+            'std': float(np.std(strides_norm)),
+            'count': len(strides_norm),
+            'all': strides_norm,
+            'regularity': float(step_size_regularity),
+            'asymmetry': float(step_asymmetry)
         },
         'step_time': {
             'mean': float(np.mean(step_times_all)),
