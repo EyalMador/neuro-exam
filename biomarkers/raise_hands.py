@@ -137,31 +137,30 @@ def find_hand_peaks(signal, prominence, width_rel):
     """
     
     amplitude = signal.max() - signal.min()
-    # Handle flatline signal
     if amplitude == 0:
         return []
-        
+            
     prom = amplitude * prominence
     
-    # Find peaks (maxima) directly in the original signal
     peak_indices, _ = find_peaks(signal, prominence=prom)
     
-    # If no "pointy" peaks are found, it might be a flat plateau.
-    # Check if the global max is prominent over the global min.
+    current_width_rel = width_rel
+    
+    # It's a plateau.
     if len(peak_indices) == 0 and (signal.max() - signal.min()) >= prom:
-        # It is a prominent plateau.
-        # Seed the peak_indices with the first max point.
-        # 'peak_widths' will then find the edges of the whole plateau.
         peak_indices = [np.argmax(signal)]
         
+        # 0.1 means "measure at 90% of the peak's height".
+        current_width_rel = 0.1
+            
     if len(peak_indices) == 0:
         return []
 
     # Compute widths on the original signal
     widths, h_eval, left_ips, right_ips = peak_widths(
-        signal,  # Use the original signal
+        signal,
         peak_indices,
-        rel_height=width_rel
+        rel_height=current_width_rel # Use the (potentially adjusted) value
     )
 
     peaks = []
