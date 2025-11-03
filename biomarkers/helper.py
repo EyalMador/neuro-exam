@@ -120,7 +120,7 @@ def indices_to_names(coords_dict, rtm_mapping):
     return new_coords_dict
 
 
-def smooth_datapoints(datapoints, method='savgol', window_length=9, polyorder=3, s=None):
+def smooth_datapoints(datapoints, method='savgol', window_length=13, polyorder=3, s=None):
 
     datapoints = np.array(datapoints)
     
