@@ -71,7 +71,6 @@ def save_biomarkers_json(biomarkers, output_dir, filename, result="normal"):
     with open(output_path, 'w') as f:
         json.dump(formatted_data, f, indent=2)
     
-    print(f"Biomarkers saved to: {output_path}")
     return output_path
 
 
@@ -154,9 +153,7 @@ def smooth_datapoints(datapoints, method='savgol', window_length=13, polyorder=3
 
 def datapoints_local_minimums(data, prominence=0.01, distance=10, 
                               smooth=True, window_length=11):
-    
-    print("start minimum function")
-    
+        
     minimums = {
         'left': {},
         'right': {}
@@ -177,15 +174,14 @@ def datapoints_local_minimums(data, prominence=0.01, distance=10,
                 'all_distances': distances
             }
             continue
-        print("before smoothe function")
+
         # Smooth data if requested
         if smooth and len(distances) > window_length:
             smoothed[side] = smooth_datapoints(distances)
         else:
             smoothed[side] = distances.copy()
 
-        print("after smooth function")
-        
+
         # Find minimums by inverting signal and finding peaks
         inverted = -smoothed[side]
         min_indices, properties = find_peaks(
@@ -193,7 +189,7 @@ def datapoints_local_minimums(data, prominence=0.01, distance=10,
             prominence=prominence,
             distance=distance
         )
-        print("after inverting")
+
         
         # Get frames and values at minimums
         min_frames = frames[min_indices]
