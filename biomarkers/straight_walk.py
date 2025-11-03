@@ -104,7 +104,7 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
             toe_coords = toe[frame_str]
             
 
-            foot_is_flat = is_foot_flat(heel_coords, toe_coords, 0.1)
+            foot_is_flat = is_foot_flat(heel_coords, toe_coords, 0.05)
             
             #step start
             if not foot_is_flat and not in_step:
