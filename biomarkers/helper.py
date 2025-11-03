@@ -155,14 +155,13 @@ def smooth_datapoints(datapoints, method='savgol', window_length=9, polyorder=3,
 def datapoints_local_minimums(data, prominence=0.01, distance=10, 
                               smooth=True, window_length=11):
     
+    print("start minimum function")
+    
     minimums = {
         'left': {},
         'right': {}
     }
-    smoothed =  {
-        'left': {},
-        'right': {}
-    }
+    smoothed =  {}
     
     for side in ['left', 'right']:
         frames = np.array(list(data[side].keys()))
@@ -178,14 +177,14 @@ def datapoints_local_minimums(data, prominence=0.01, distance=10,
                 'all_distances': distances
             }
             continue
-        
+        print("before smoothe function")
         # Smooth data if requested
         if smooth and len(distances) > window_length:
             smoothed[side] = smooth_datapoints(distances)
         else:
             smoothed[side] = distances.copy()
 
-        
+        print("after smooth function")
         
         # Find minimums by inverting signal and finding peaks
         inverted = -smoothed[side]
@@ -194,6 +193,7 @@ def datapoints_local_minimums(data, prominence=0.01, distance=10,
             prominence=prominence,
             distance=distance
         )
+        print("after inverting")
         
         # Get frames and values at minimums
         min_frames = frames[min_indices]
