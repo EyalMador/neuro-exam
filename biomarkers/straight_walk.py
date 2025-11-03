@@ -5,33 +5,31 @@ import matplotlib.pyplot as plt
 from biomarkers.helper import save_biomarkers_json
 
 
+
 def plot_smoothed(smoothed_data):
     """
-    Plot already smoothed knee angle data.
+    Plot the smoothed distances for both left and right sides.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     smoothed_data : dict
-        Dictionary with keys 'left', 'right' and smoothed numpy arrays as values
+        Dictionary with 'left' and 'right' keys, each containing a numpy array
+        of smoothed distance values.
     """
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(10, 5))
     
-    for side, data in smoothed_data.items():
-        plt.plot(data, label=side.capitalize(), linewidth=2)
+    for side, values in smoothed_data.items():
+        if values is None or len(values) == 0:
+            continue
+        
+        frames = np.arange(len(values))
+        plt.plot(frames, values, label=f"{side.capitalize()} (smoothed)")
     
-    plt.xlabel("Time Point", fontsize=12)
-    plt.ylabel("Knee Angle (degrees)", fontsize=12)
-    plt.title("Smoothed Knee Angles Over Time", fontsize=14, fontweight='bold')
-    plt.legend(fontsize=11)
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.show()
-    
-    plt.xlabel("Time Point", fontsize=12)
-    plt.ylabel("Knee Angle (degrees)", fontsize=12)
-    plt.title("Smoothed Knee Angles Over Time", fontsize=14, fontweight='bold')
-    plt.legend(fontsize=11)
-    plt.grid(True, alpha=0.3)
+    plt.title("Smoothed Heel-Toe Distances")
+    plt.xlabel("Frame Index")
+    plt.ylabel("Distance")
+    plt.legend()
+    plt.grid(True)
     plt.tight_layout()
     plt.show()
 
