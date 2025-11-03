@@ -5,6 +5,27 @@ import matplotlib.pyplot as plt
 from biomarkers.helper import save_biomarkers_json
 
 
+def plot_smoothed(smoothed_data):
+    """
+    Plot smoothed knee angle data.
+    
+    Parameters:
+    -----------
+    smoothed_data : dict
+        Dictionary with keys like 'left', 'right' and smoothed arrays as values
+    """
+    plt.figure(figsize=(12, 6))
+    
+    for key, data in smoothed_data.items():
+        plt.plot(data, label=key.capitalize(), linewidth=2, marker='o', markersize=3)
+    
+    plt.xlabel("Time Point", fontsize=12)
+    plt.ylabel("Knee Angle (degrees)", fontsize=12)
+    plt.title("Smoothed Knee Angles Over Time", fontsize=14, fontweight='bold')
+    plt.legend(fontsize=11)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
 def plot_knee_angles(knee_angles):
     """
@@ -360,7 +381,7 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
                              if 90 <= angle <= 180}
     
     minimum_angles, smoothed_angles = helper.datapoints_local_minimums(knee_angles)
-    plot_knee_angles(smoothed_angles)
+    plot_smoothed(smoothed_angles)
 
     all_angles = knee_angles['all']
     
@@ -457,7 +478,6 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers['knee_amplitude_right'] = knee_biomarkers['right']['amplitude']
     biomarkers['knee_amplitude_asymmetry'] = knee_biomarkers['amplitude_asymmetry']
 
-    #helper.plot_biomarkers(biomarkers, "straight_walk")
     save_biomarkers_json(biomarkers, output_dir, filename)
 
     return biomarkers
