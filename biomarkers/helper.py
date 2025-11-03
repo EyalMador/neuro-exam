@@ -120,33 +120,8 @@ def indices_to_names(coords_dict, rtm_mapping):
     return new_coords_dict
 
 
+def smooth_datapoints(datapoints, method='savgol', window_length=9, polyorder=3, s=None):
 
-
-
-def smooth_datapoints(datapoints, method='savgol', window_length=11, polyorder=3, s=None):
-    """
-    Smooth landmarks using various methods.
-    
-    Parameters:
-    -----------
-    angles : array-like
-        Raw angle data
-    method : str
-        'savgol' for Savitzky-Golay filter
-        'spline' for cubic spline smoothing
-        'moving_avg' for simple moving average
-    window_length : int
-        Window size for Savitzky-Golay (must be odd)
-    polyorder : int
-        Polynomial order for Savitzky-Golay
-    s : float
-        Smoothing factor for spline (None = automatic)
-    
-    Returns:
-    --------
-    smoothed : array
-        Smoothed angle data
-    """
     datapoints = np.array(datapoints)
     
     if method == 'savgol':
@@ -184,6 +159,10 @@ def datapoints_local_minimums(data, prominence=0.01, distance=10,
         'left': {},
         'right': {}
     }
+    smoothed =  {
+        'left': {},
+        'right': {}
+    }
     
     for side in ['left', 'right']:
         frames = np.array(list(data[side].keys()))
@@ -202,9 +181,11 @@ def datapoints_local_minimums(data, prominence=0.01, distance=10,
         
         # Smooth data if requested
         if smooth and len(distances) > window_length:
-            smoothed = smooth_datapoints(distances)
+            smoothed[side] = smooth_datapoints(distances)
         else:
-            smoothed = distances.copy()
+            smoothed[side] = distances.copy()
+
+        
         
         # Find minimums by inverting signal and finding peaks
         inverted = -smoothed
@@ -216,17 +197,17 @@ def datapoints_local_minimums(data, prominence=0.01, distance=10,
         
         # Get frames and values at minimums
         min_frames = frames[min_indices]
-        min_values = smoothed[min_indices]
+        min_values = smoothed[side][min_indices]
         
         minimums[side] = {
             'min_frames': min_frames,
             'min_values': min_values,
             'min_indices': min_indices,
-            'smoothed_distances': smoothed,
+            'smoothed_distances': smoothed[side],
             'properties': properties
         }
     
-    return minimums
+    return minimums, smoothed
 
 
 def calc_symmetry(left_stats, right_stats, max_asymmetry_percent=50):

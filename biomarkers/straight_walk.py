@@ -304,9 +304,6 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
 
 
 
-
-
-
 def calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
     frames = range(len(left_knee))
     
@@ -362,7 +359,8 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
         knee_angles[side] = {frame: angle for frame, angle in knee_angles[side].items() 
                              if 90 <= angle <= 180}
     
-    minimum_angles = helper.datapoints_local_minimums(knee_angles)
+    minimum_angles, smoothed_angles = helper.datapoints_local_minimums(knee_angles)
+    plot_knee_angles(smoothed_angles)
 
     all_angles = knee_angles['all']
     
