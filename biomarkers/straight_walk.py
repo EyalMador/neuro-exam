@@ -75,6 +75,7 @@ def plot_knee_angles(knee_angles):
 def is_foot_flat(heel, toe, threshold = 0.5):
 
     foot_size = foot_size_pixels(heel, toe)
+    print(f"is foot flst distance = {abs(heel['y'] - toe['y']) /foot_size}")
     return ((abs(heel['y'] - toe['y']) /foot_size) < threshold )
 
 def foot_size_pixels(heel, toe):
