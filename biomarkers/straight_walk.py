@@ -7,23 +7,17 @@ from biomarkers.helper import save_biomarkers_json
 
 def plot_smoothed(smoothed_data):
     """
-    Plot smoothed knee angle data from dictionary.
+    Plot already smoothed knee angle data.
     
     Parameters:
     -----------
     smoothed_data : dict
-        Dictionary with keys 'left', 'right' (or 'all') and numpy arrays as values
+        Dictionary with keys 'left', 'right' and smoothed numpy arrays as values
     """
     plt.figure(figsize=(12, 6))
     
-    for side, angles_dict in smoothed_data.items():
-        # Extract values if it's a dict, otherwise use directly if it's an array
-        if isinstance(angles_dict, dict):
-            values = list(angles_dict.values())
-        else:
-            values = angles_dict
-        
-        plt.plot(values, label=side.capitalize(), linewidth=2, marker='o', markersize=3)
+    for side, data in smoothed_data.items():
+        plt.plot(data, label=side.capitalize(), linewidth=2)
     
     plt.xlabel("Time Point", fontsize=12)
     plt.ylabel("Knee Angle (degrees)", fontsize=12)
@@ -32,6 +26,15 @@ def plot_smoothed(smoothed_data):
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show()
+    
+    plt.xlabel("Time Point", fontsize=12)
+    plt.ylabel("Knee Angle (degrees)", fontsize=12)
+    plt.title("Smoothed Knee Angles Over Time", fontsize=14, fontweight='bold')
+    plt.legend(fontsize=11)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
 
 def plot_knee_angles(knee_angles):
     """
