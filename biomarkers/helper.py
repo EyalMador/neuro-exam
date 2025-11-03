@@ -188,7 +188,7 @@ def datapoints_local_minimums(data, prominence=0.01, distance=10,
         
         
         # Find minimums by inverting signal and finding peaks
-        inverted = -smoothed
+        inverted = -smoothed[side]
         min_indices, properties = find_peaks(
             inverted,
             prominence=prominence,
