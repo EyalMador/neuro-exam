@@ -96,14 +96,6 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
         in_step = False
         step_start = None
 
-        """ 
-        gaps = [abs(heel[str(frame)]['y'] - toe[str(frame)]['y']) for frame in frames]
-        non_zero_gaps = [gap for gap in gaps if gap > 0]
-        #min_gap = min(non_zero_gaps) if non_zero_gaps else 0
-        min_gap = 0
-        print(f'min gap {min_gap}')
-
-        """
 
         for frame in frames:
             frame_str = str(frame)
@@ -125,6 +117,9 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
                 if step_start is not None:
                     steps[foot].append((step_start, frame))
                 step_start = None
+
+        for start, end in steps[foot]:
+            print (f"step from {start} to {end}.")
 
     return steps
 
