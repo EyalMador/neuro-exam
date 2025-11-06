@@ -61,6 +61,7 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
 
     distance_data = heel_toe_distance(left_heel, right_heel, left_toe, right_toe)
     distances_minimums = helper.datapoints_local_minimums(distance_data)
+    print("sign 3")
     
     if len(distances_minimums['left']['min_frames']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
         return {'error': 'No data detected'}
