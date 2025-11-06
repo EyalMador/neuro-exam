@@ -440,6 +440,8 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers = {}
     steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
     knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
+    diagnose_detect_steps(left_heel, left_toe, right_heel, right_toe)
+
 
     # Step size biomarkers (now normalized by foot size)
     biomarkers["step_size"] = steps_biomarkers["step_size"]
@@ -453,13 +455,6 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
     biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
     biomarkers['knee_regularity_mean'] = knee_biomarkers['regularity_mean']
-    biomarkers['knee_regularity_left'] = knee_biomarkers['left']['regularity']
-    biomarkers['knee_regularity_right'] = knee_biomarkers['right']['regularity']
-    biomarkers['knee_min_angle_left'] = knee_biomarkers['left']['min_angle']
-    biomarkers['knee_min_angle_right'] = knee_biomarkers['right']['min_angle']
-    biomarkers['knee_amplitude_left'] = knee_biomarkers['left']['amplitude']
-    biomarkers['knee_amplitude_right'] = knee_biomarkers['right']['amplitude']
-    biomarkers['knee_amplitude_asymmetry'] = knee_biomarkers['amplitude_asymmetry']
 
     save_biomarkers_json(biomarkers, output_dir, filename)
 
