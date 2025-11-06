@@ -37,7 +37,9 @@ def heel_toe_distance(left_heel, right_heel, left_toe, right_toe):
     
     # Calculate distances for each frame
     for frame in frames:
-        frame = str(frame)  
+        frame = str(frame) 
+        print("Frame:", frame, "left_heel[frame] =", left_heel[frame])
+
         left_heel_coords = np.array([left_heel[frame]['x'], left_heel[frame]['y'], left_heel[frame]['z']])
         left_toe_coords = np.array([left_toe[frame]['x'], left_toe[frame]['y'], left_toe[frame]['z']])
         right_heel_coords = np.array([right_heel[frame]['x'], right_heel[frame]['y'], right_heel[frame]['z']])
