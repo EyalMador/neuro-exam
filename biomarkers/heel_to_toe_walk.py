@@ -62,13 +62,7 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
 
     distances_minimums = helper.datapoints_local_minimums(distance_data)
     
-    if len(distances_minimums['left']['min_frames']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
-        return {'error': 'No data detected'}
-
-    # Filter minimums: only keep if there's a clear crossing pattern
-    
     for side in ['left', 'right']:
-        other_side = 'right' if side == 'left' else 'left'
         
         min_indices = distances_minimums[side]['min_indices']
         min_values = distances_minimums[side]['min_values']
