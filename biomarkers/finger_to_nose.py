@@ -1,6 +1,9 @@
 import numpy as np
-from biomarkers.raise_hands import detect_raise_events
 from scipy.signal import detrend, welch
+import numpy as np
+from scipy.signal import find_peaks, peak_widths
+
+
 
 
 # ---------------helpers--------------------
@@ -80,6 +83,76 @@ def compute_tremor(tip_coords, fps, tremor_band=(4, 12)):
     mask = (freqs >= tremor_band[0]) & (freqs <= tremor_band[1])
     tremor_power = np.trapz(psd[mask], freqs[mask])
     return float(tremor_power)
+
+
+
+def detect_finger_to_nose_events(dist_dict,
+                                 prominence=0.15,
+                                 width_rel=0.6,
+                                 smooth_win=7,
+                                 merge_gap=15):
+
+
+    def smooth_signal(sig, window):
+        if len(sig) < window:
+            return sig
+        kernel = np.ones(window) / window
+        return np.convolve(sig, kernel, mode="same")
+
+    def find_valleys(signal, prominence, width_rel):
+        """Find valleys (minima) in 1D signal using inverted peaks."""
+        amplitude = signal.max() - signal.min()
+        if amplitude == 0:
+            return []
+
+        prom = amplitude * prominence
+        inverted = -signal  # valleys → peaks
+
+        peaks, _ = find_peaks(inverted, prominence=prom)
+        if len(peaks) == 0:
+            return []
+
+        _, _, left_ips, right_ips = peak_widths(
+            signal.max() - signal, peaks, rel_height=width_rel
+        )
+
+        valleys = []
+        for i in range(len(peaks)):
+            start = max(0, int(np.floor(left_ips[i])))
+            end = min(len(signal) - 1, int(np.ceil(right_ips[i])))
+            valleys.append((start, end))
+        return valleys
+
+    # ---- process single signal ----
+    frames = sorted(dist_dict.keys(), key=int)
+    if not frames:
+        return {}
+
+    y = np.array([dist_dict[f] for f in frames])
+    y = smooth_signal(y, smooth_win)
+
+    # Detect valleys
+    events = find_valleys(y, prominence, width_rel)
+    if not events:
+        return {}
+
+    # Merge overlapping / close valleys
+    merged = []
+    current_start, current_end = events[0]
+
+    for start, end in events[1:]:
+        if start <= current_end + merge_gap:
+            current_end = max(current_end, end)
+        else:
+            merged.append((current_start, current_end))
+            current_start, current_end = start, end
+    merged.append((current_start, current_end))
+
+    result = {}
+    for i, (start, end) in enumerate(merged):
+        result[i] = [int(f) for f in frames[start:end + 1]]
+
+    return result
 
 
 def compute_finger_to_nose_biomarkers(left_events, right_events,
@@ -164,8 +237,8 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     neg_right = negate_dict(filtered_right)
 
     #Event detection per hand
-    left_events = detect_raise_events(neg_left, neg_left)
-    right_events = detect_raise_events(neg_right, neg_right)
+    left_events = detect_finger_to_nose_events(neg_left)
+    right_events = detect_finger_to_nose_events(neg_right)
 
     #Compute biomarkers
     res = compute_finger_to_nose_biomarkers(
