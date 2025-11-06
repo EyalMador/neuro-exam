@@ -65,9 +65,10 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
         return {'error': 'No data detected'}
 
     # Filter minimums: only keep if there's a clear crossing pattern
-    
+    print("sign 1")
     for side in ['left', 'right']:
-        
+        print("sign 2")
+
         min_indices = distances_minimums[side]['min_indices']
         min_values = distances_minimums[side]['min_values']
         left_smoothed = distances_minimums['left']['smoothed_distances']
@@ -88,12 +89,12 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
             # This filters out noise crossings and keeps only clear crossing events
             if (other_val - current_min) > 30:
                 valid_indices.append(i)
-        
+        print("sign 4")
         # Keep only valid minimums
         distances_minimums[side]['min_indices'] = min_indices[valid_indices]
         distances_minimums[side]['min_values'] = min_values[valid_indices]
         distances_minimums[side]['min_frames'] = distances_minimums[side]['min_frames'][valid_indices]
-        print("sign 4")
+        
 
     if len(distances_minimums['left']['min_values']) == 0 or len(distances_minimums['right']['min_values']) == 0:
         return {'error': 'No data detected'}
