@@ -75,6 +75,7 @@ def plot_knee_angles(knee_angles):
 def is_foot_flat(heel, toe, threshold = 0.5):
 
     foot_size = foot_size_pixels(heel, toe)
+    print(f"is foot flst distance = {abs(heel['y'] - toe['y']) /foot_size}")
     return ((abs(heel['y'] - toe['y']) /foot_size) < threshold )
 
 def foot_size_pixels(heel, toe):
@@ -83,7 +84,7 @@ def foot_size_pixels(heel, toe):
     toe_np = np.array([toe['x'], toe['y']])
     return np.linalg.norm(heel_np - toe_np)
 
-def detect_steps(left_heel, left_toe, right_heel, right_toe, flatness_threshold=0.05, min_step_frames=3):
+def detect_steps(left_heel, left_toe, right_heel, right_toe):
     frames = range(len(left_heel))
     
     steps = {
@@ -96,34 +97,27 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe, flatness_threshold=
         in_step = False
         step_start = None
 
+
         for frame in frames:
             frame_str = str(frame)
 
             heel_coords = heel[frame_str]
             toe_coords = toe[frame_str]
             
-            foot_is_flat = is_foot_flat(heel_coords, toe_coords, flatness_threshold)
+
+            foot_is_flat = is_foot_flat(heel_coords, toe_coords, 0.05)
             
             #step start
-            if foot_is_flat and not in_step:
+            if not foot_is_flat and not in_step:
                 in_step = True
                 step_start = frame
 
             #step end
-            elif not foot_is_flat and in_step:
+            elif foot_is_flat and in_step:
                 in_step = False
                 if step_start is not None:
-                    step_duration = frame - step_start
-                    # Only add step if it's long enough (filter noise)
-                    if step_duration >= min_step_frames:
-                        steps[foot].append((step_start, frame - 1))
+                    steps[foot].append((step_start, frame))
                 step_start = None
-
-        # Handle case where sequence ends while in a step
-        if in_step and step_start is not None:
-            step_duration = frames[-1] - step_start + 1
-            if step_duration >= min_step_frames:
-                steps[foot].append((step_start, frames[-1]))
 
         for start, end in steps[foot]:
             print (f"step from {start} to {end}.")
@@ -306,7 +300,10 @@ def calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, rig
 def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
 
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
-        
+    
+    # Plot knee angles
+    plot_knee_angles(knee_angles)
+    
     # Filter out unrealistic angles (< 90° or > 180° indicate errors/abnormality)
     for side in ['left', 'right', 'all']:
         knee_angles[side] = {frame: angle for frame, angle in knee_angles[side].items() 
@@ -390,7 +387,7 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
     knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
 
-    # Step size biomarkers
+    # Step size biomarkers (now normalized by foot size)
     biomarkers["step_size"] = steps_biomarkers["step_size"]
     biomarkers["step_size_regularity"] = steps_biomarkers["step_size"]["regularity"]
     biomarkers["step_size_asymmetry"] = steps_biomarkers["step_size"].get("asymmetry", 999)
@@ -402,6 +399,13 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
     biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
     biomarkers['knee_regularity_mean'] = knee_biomarkers['regularity_mean']
+    biomarkers['knee_regularity_left'] = knee_biomarkers['left']['regularity']
+    biomarkers['knee_regularity_right'] = knee_biomarkers['right']['regularity']
+    biomarkers['knee_min_angle_left'] = knee_biomarkers['left']['min_angle']
+    biomarkers['knee_min_angle_right'] = knee_biomarkers['right']['min_angle']
+    biomarkers['knee_amplitude_left'] = knee_biomarkers['left']['amplitude']
+    biomarkers['knee_amplitude_right'] = knee_biomarkers['right']['amplitude']
+    biomarkers['knee_amplitude_asymmetry'] = knee_biomarkers['amplitude_asymmetry']
 
     save_biomarkers_json(biomarkers, output_dir, filename)
 
