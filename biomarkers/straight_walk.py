@@ -453,7 +453,10 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers['knee_regularity_mean'] = knee_biomarkers['regularity_mean']
     biomarkers['knee_regularity_left'] = knee_biomarkers['left']['regularity']
     biomarkers['knee_regularity_right'] = knee_biomarkers['right']['regularity']
-
+    biomarkers['knee_min_angle_left'] = knee_biomarkers['left']['min_angle']
+    biomarkers['knee_min_angle_right'] = knee_biomarkers['right']['min_angle']
+    biomarkers['knee_amplitude_left'] = knee_biomarkers['left']['amplitude']
+    biomarkers['knee_amplitude_right'] = knee_biomarkers['right']['amplitude']
     biomarkers['knee_amplitude_asymmetry'] = knee_biomarkers['amplitude_asymmetry']
 
     #helper.plot_biomarkers(biomarkers, "straight_walk")
