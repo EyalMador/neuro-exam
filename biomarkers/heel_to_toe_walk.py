@@ -58,6 +58,8 @@ def heel_toe_distance(left_heel, right_heel, left_toe, right_toe):
 def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_toe):
 
     distance_data = heel_toe_distance(left_heel, right_heel, left_toe, right_toe)
+    print("DEBUG type check:", {k: type(v) for k, v in distance_data.items()})
+
     distances_minimums = helper.datapoints_local_minimums(distance_data)
     
     if len(distances_minimums['left']['min_frames']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
