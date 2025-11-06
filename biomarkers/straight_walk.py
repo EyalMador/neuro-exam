@@ -75,7 +75,6 @@ def plot_knee_angles(knee_angles):
 def is_foot_flat(heel, toe, threshold = 0.5):
 
     foot_size = foot_size_pixels(heel, toe)
-    print(f"is foot flst distance = {abs(heel['y'] - toe['y']) /foot_size}")
     return ((abs(heel['y'] - toe['y']) /foot_size) < threshold )
 
 def foot_size_pixels(heel, toe):
@@ -119,10 +118,65 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
                     steps[foot].append((step_start, frame))
                 step_start = None
 
-        for start, end in steps[foot]:
-            print (f"step from {start} to {end}.")
-
     return steps
+
+
+def diagnose_detect_steps(left_heel, left_toe, right_heel, right_toe):
+    """
+    Analyze the current step detection to understand what's happening.
+    Print detailed info about foot flatness across all frames.
+    """
+    frames = range(len(left_heel))
+    
+    for foot, heel, toe in [('left', left_heel, left_toe), 
+                            ('right', right_heel, right_toe)]:
+        print(f"\n{'='*60}")
+        print(f"DIAGNOSTIC: {foot.upper()} FOOT")
+        print(f"{'='*60}")
+        
+        flat_percentages = []
+        flat_frames = []
+        non_flat_frames = []
+        
+        for frame in frames:
+            frame_str = str(frame)
+            heel_coords = heel[frame_str]
+            toe_coords = toe[frame_str]
+            
+            foot_size = foot_size_pixels(heel_coords, toe_coords)
+            vertical_distance = abs(heel_coords['y'] - toe_coords['y'])
+            flatness_ratio = vertical_distance / foot_size
+            
+            flat_percentages.append(flatness_ratio)
+            
+            # Track which frames are flat vs non-flat at current threshold
+            if flatness_ratio < 0.05:
+                flat_frames.append((frame, flatness_ratio))
+            else:
+                non_flat_frames.append((frame, flatness_ratio))
+        
+        # Print statistics
+        print(f"Total frames: {len(flat_percentages)}")
+        print(f"Frames detected as FLAT (< 0.05): {len(flat_frames)}")
+        print(f"Frames detected as NON-FLAT (>= 0.05): {len(non_flat_frames)}")
+        print(f"\nFlatness ratio statistics:")
+        print(f"  Min: {min(flat_percentages):.4f}")
+        print(f"  Max: {max(flat_percentages):.4f}")
+        print(f"  Mean: {np.mean(flat_percentages):.4f}")
+        print(f"  Median: {np.median(flat_percentages):.4f}")
+        print(f"  Std: {np.std(flat_percentages):.4f}")
+        
+        # Show distribution across thresholds
+        print(f"\nDistribution across different thresholds:")
+        for threshold in [0.05, 0.10, 0.15, 0.20, 0.25, 0.30]:
+            count = sum(1 for x in flat_percentages if x < threshold)
+            print(f"  < {threshold}: {count} frames ({count/len(flat_percentages)*100:.1f}%)")
+        
+        # Show first 50 frames in detail
+        print(f"\nFirst 50 frames (frame | flatness_ratio | is_flat@0.05):")
+        for frame in range(min(50, len(flat_percentages))):
+            is_flat = "✓ FLAT" if flat_percentages[frame] < 0.05 else "✗ NON-FLAT"
+            print(f"  Frame {frame:3d} | {flat_percentages[frame]:.4f} | {is_flat}")
 
 
 def stride_lengths(heel, toe, steps, foot):
