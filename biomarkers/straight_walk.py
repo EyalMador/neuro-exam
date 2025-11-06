@@ -6,6 +6,34 @@ from biomarkers.helper import save_biomarkers_json
 
 
 
+def plot_smoothed(smoothed_data):
+    """
+    Plot the smoothed distances for both left and right sides.
+    
+    Parameters
+    ----------
+    smoothed_data : dict
+        Dictionary with 'left' and 'right' keys, each containing a numpy array
+        of smoothed distance values.
+    """
+    plt.figure(figsize=(10, 5))
+    
+    for side, values in smoothed_data.items():
+        if values is None or len(values) == 0:
+            continue
+        
+        frames = np.arange(len(values))
+        plt.plot(frames, values, label=f"{side.capitalize()} (smoothed)")
+    
+    plt.title("Smoothed Heel-Toe Distances")
+    plt.xlabel("Frame Index")
+    plt.ylabel("Distance")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_knee_angles(knee_angles):
     """
     Plot knee angles over time for left, right, and all knees.
@@ -47,6 +75,7 @@ def plot_knee_angles(knee_angles):
 def is_foot_flat(heel, toe, threshold = 0.5):
 
     foot_size = foot_size_pixels(heel, toe)
+    print(f"is foot flst distance = {abs(heel['y'] - toe['y']) /foot_size}")
     return ((abs(heel['y'] - toe['y']) /foot_size) < threshold )
 
 def foot_size_pixels(heel, toe):
@@ -68,14 +97,6 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
         in_step = False
         step_start = None
 
-        """ 
-        gaps = [abs(heel[str(frame)]['y'] - toe[str(frame)]['y']) for frame in frames]
-        non_zero_gaps = [gap for gap in gaps if gap > 0]
-        #min_gap = min(non_zero_gaps) if non_zero_gaps else 0
-        min_gap = 0
-        print(f'min gap {min_gap}')
-
-        """
 
         for frame in frames:
             frame_str = str(frame)
@@ -84,7 +105,7 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
             toe_coords = toe[frame_str]
             
 
-            foot_is_flat = is_foot_flat(heel_coords, toe_coords, 0.25)
+            foot_is_flat = is_foot_flat(heel_coords, toe_coords, 0.05)
             
             #step start
             if not foot_is_flat and not in_step:
@@ -97,6 +118,9 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
                 if step_start is not None:
                     steps[foot].append((step_start, frame))
                 step_start = None
+
+        for start, end in steps[foot]:
+            print (f"step from {start} to {end}.")
 
     return steps
 
@@ -304,9 +328,6 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
 
 
 
-
-
-
 def calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
     frames = range(len(left_knee))
     
@@ -362,7 +383,8 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
         knee_angles[side] = {frame: angle for frame, angle in knee_angles[side].items() 
                              if 90 <= angle <= 180}
     
-    minimum_angles = helper.datapoints_local_minimums(knee_angles)
+    minimum_angles, smoothed_angles = helper.datapoints_local_minimums(knee_angles)
+    plot_smoothed(smoothed_angles)
 
     all_angles = knee_angles['all']
     
@@ -459,7 +481,6 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers['knee_amplitude_right'] = knee_biomarkers['right']['amplitude']
     biomarkers['knee_amplitude_asymmetry'] = knee_biomarkers['amplitude_asymmetry']
 
-    #helper.plot_biomarkers(biomarkers, "straight_walk")
     save_biomarkers_json(biomarkers, output_dir, filename)
 
     return biomarkers
