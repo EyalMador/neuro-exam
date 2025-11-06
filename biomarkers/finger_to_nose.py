@@ -146,8 +146,8 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     right_wrist = pose["RIGHT_WRIST"]
 
     nose = pose["NOSE"]
-    left_finger = hands["LEFT_TIP"]
-    right_finger = hands["RIGHT_TIP"]
+    left_finger = hands["LEFT_HAND.INDEX_FINGER_TIP"]
+    right_finger = hands["RIGHT_HAND.INDEX_FINGER_TIP"]
 
     
     left_dist = calculate_distance_dict(left_finger, nose)
