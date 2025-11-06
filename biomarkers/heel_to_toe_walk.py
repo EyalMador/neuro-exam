@@ -37,8 +37,7 @@ def heel_toe_distance(left_heel, right_heel, left_toe, right_toe):
     
     # Calculate distances for each frame
     for frame in frames:
-        frame = str(frame) 
-
+        frame = str(frame)  
         left_heel_coords = np.array([left_heel[frame]['x'], left_heel[frame]['y'], left_heel[frame]['z']])
         left_toe_coords = np.array([left_toe[frame]['x'], left_toe[frame]['y'], left_toe[frame]['z']])
         right_heel_coords = np.array([right_heel[frame]['x'], right_heel[frame]['y'], right_heel[frame]['z']])
@@ -60,15 +59,15 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
 
     distance_data = heel_toe_distance(left_heel, right_heel, left_toe, right_toe)
     distances_minimums = helper.datapoints_local_minimums(distance_data)
-    print("helooooo")
+    
     if len(distances_minimums['left']['min_frames']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
         return {'error': 'No data detected'}
 
     # Filter minimums: only keep if there's a clear crossing pattern
-    print("sign 1")
+    
     for side in ['left', 'right']:
-        print("sign 2")
-
+        other_side = 'right' if side == 'left' else 'left'
+        
         min_indices = distances_minimums[side]['min_indices']
         min_values = distances_minimums[side]['min_values']
         left_smoothed = distances_minimums['left']['smoothed_distances']
@@ -89,12 +88,11 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
             # This filters out noise crossings and keeps only clear crossing events
             if (other_val - current_min) > 30:
                 valid_indices.append(i)
-        print("sign 4")
+        
         # Keep only valid minimums
         distances_minimums[side]['min_indices'] = min_indices[valid_indices]
         distances_minimums[side]['min_values'] = min_values[valid_indices]
         distances_minimums[side]['min_frames'] = distances_minimums[side]['min_frames'][valid_indices]
-        
 
     if len(distances_minimums['left']['min_values']) == 0 or len(distances_minimums['right']['min_values']) == 0:
         return {'error': 'No data detected'}
@@ -144,14 +142,14 @@ def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename):
     
     biomarkers = {}
     htt_distances = local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_toe)
-    print("after getting minimum")
-
     knee_biomarkers = sw.knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
 
     biomarkers["htt_distances_left"] = htt_distances['left']
     biomarkers["htt_distances_right"] = htt_distances['right']
     biomarkers["htt_distances_symmetry"] = htt_distances['symmetry_score']
     biomarkers["htt_distances_regularity"] = htt_distances['regularity_mean']
+    biomarkers["htt_distances_left_regularity"] = htt_distances['left']['regularity']
+    biomarkers["htt_distances_right_regularity"] = htt_distances['right']['regularity']
 
     biomarkers['knee_angles_left'] = knee_biomarkers['left']
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
