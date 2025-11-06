@@ -38,7 +38,6 @@ def heel_toe_distance(left_heel, right_heel, left_toe, right_toe):
     # Calculate distances for each frame
     for frame in frames:
         frame = str(frame) 
-        print("Frame:", frame, "left_heel[frame] =", left_heel[frame])
 
         left_heel_coords = np.array([left_heel[frame]['x'], left_heel[frame]['y'], left_heel[frame]['z']])
         left_toe_coords = np.array([left_toe[frame]['x'], left_toe[frame]['y'], left_toe[frame]['z']])
@@ -61,7 +60,6 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
 
     distance_data = heel_toe_distance(left_heel, right_heel, left_toe, right_toe)
     distances_minimums = helper.datapoints_local_minimums(distance_data)
-    print("sign 3")
     
     if len(distances_minimums['left']['min_frames']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
         return {'error': 'No data detected'}
@@ -69,7 +67,6 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
     # Filter minimums: only keep if there's a clear crossing pattern
     
     for side in ['left', 'right']:
-        other_side = 'right' if side == 'left' else 'left'
         
         min_indices = distances_minimums[side]['min_indices']
         min_values = distances_minimums[side]['min_values']
@@ -96,6 +93,7 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
         distances_minimums[side]['min_indices'] = min_indices[valid_indices]
         distances_minimums[side]['min_values'] = min_values[valid_indices]
         distances_minimums[side]['min_frames'] = distances_minimums[side]['min_frames'][valid_indices]
+        print("sign 4")
 
     if len(distances_minimums['left']['min_values']) == 0 or len(distances_minimums['right']['min_values']) == 0:
         return {'error': 'No data detected'}
