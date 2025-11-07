@@ -15,22 +15,27 @@ def main():
         description="Test:",
     )
 
-    # hidden by default
     file_input = widgets.Text(
         description="Video file:",
         placeholder="example.mov",
     )
-    file_input.layout.visibility = "hidden"
 
     run_button = widgets.Button(description="Run", button_style="success")
     output = widgets.Output()
 
-    # 🔹 Hide/show the file input dynamically
+    # Container that will hold widgets dynamically
+    dynamic_box = widgets.VBox([operation_dropdown, test_dropdown, run_button, output])
+
+    def refresh_ui():
+        # remove or add the file input based on current operation
+        children = [operation_dropdown, test_dropdown]
+        if operation_dropdown.value == "classify":
+            children.append(file_input)
+        children += [run_button, output]
+        dynamic_box.children = children
+
     def on_operation_change(change):
-        if change["new"] == "classify":
-            file_input.layout.visibility = "visible"
-        else:
-            file_input.layout.visibility = "hidden"
+        refresh_ui()
 
     operation_dropdown.observe(on_operation_change, names="value")
 
@@ -48,15 +53,10 @@ def main():
 
     run_button.on_click(on_run_clicked)
 
-    ui = widgets.VBox([
-        widgets.HTML("<h3 style='color:#2c3e50;'>🧠 Neuro-Exam Automation Interface</h3>"),
-        operation_dropdown,
-        test_dropdown,
-        file_input,
-        run_button,
-        output
-    ])
+    # UI header
+    title = widgets.HTML("<h3 style='color:#2c3e50;'>🧠 Neuro-Exam Automation Interface</h3>")
+    ui = widgets.VBox([title, dynamic_box])
 
+    # initial layout (without file input)
+    refresh_ui()
     display(ui)
-    # ensure initial state is hidden
-    file_input.layout.visibility = "hidden"
