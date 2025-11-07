@@ -5,58 +5,40 @@ from scripts.automation import train, classify_video, test
 supported_tests = ["straight_walk", "heel_to_toe_walk", "raise_hands", "finger_to_nose"]
 
 def main():
-    operation_dropdown = widgets.Dropdown(
+    op_dd = widgets.Dropdown(
         options=["train", "classify", "test"],
         description="Operation:",
     )
-
-    test_dropdown = widgets.Dropdown(
+    test_dd = widgets.Dropdown(
         options=supported_tests,
         description="Test:",
     )
+    file_box = widgets.Text(description="Video file:", placeholder="example.mov")
+    run_btn = widgets.Button(description="Run", button_style="success")
+    out = widgets.Output()
 
-    file_input = widgets.Text(
-        description="Video file:",
-        placeholder="example.mov",
-    )
+    # hidden initially
+    file_box.layout.display = "none"
 
-    run_button = widgets.Button(description="Run", button_style="success")
-    output = widgets.Output()
+    def on_op_change(change):
+        file_box.layout.display = "block" if change["new"] == "classify" else "none"
+    op_dd.observe(on_op_change, names="value")
 
-    # Container that will hold widgets dynamically
-    dynamic_box = widgets.VBox([operation_dropdown, test_dropdown, run_button, output])
-
-    def refresh_ui():
-        # remove or add the file input based on current operation
-        children = [operation_dropdown, test_dropdown]
-        if operation_dropdown.value == "classify":
-            children.append(file_input)
-        children += [run_button, output]
-        dynamic_box.children = children
-
-    def on_operation_change(change):
-        refresh_ui()
-
-    operation_dropdown.observe(on_operation_change, names="value")
-
-    def on_run_clicked(_):
+    def on_run(_):
         clear_output(wait=False)
-        with output:
-            op = operation_dropdown.value
-            t = test_dropdown.value
+        with out:
+            op, t = op_dd.value, test_dd.value
             if op == "train":
                 train(t)
             elif op == "test":
                 test(t)
             elif op == "classify":
-                classify_video(t, file_input.value)
+                classify_video(t, file_box.value)
 
-    run_button.on_click(on_run_clicked)
+    run_btn.on_click(on_run)
 
-    # UI header
-    title = widgets.HTML("<h3 style='color:#2c3e50;'>🧠 Neuro-Exam Automation Interface</h3>")
-    ui = widgets.VBox([title, dynamic_box])
-
-    # initial layout (without file input)
-    refresh_ui()
+    ui = widgets.VBox([
+        widgets.HTML("<h3>🧠 Neuro-Exam Automation Interface</h3>"),
+        op_dd, test_dd, file_box, run_btn, out
+    ])
     display(ui)
