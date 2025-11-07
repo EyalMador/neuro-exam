@@ -4,9 +4,8 @@ import numpy as np
 from scipy.signal import find_peaks, peak_widths
 
 
-
-
 # ---------------helpers--------------------
+
 def calculate_distance_dict(finger_coords, nose_coords):
 
     frames = sorted(set(finger_coords.keys()) & set(nose_coords.keys()), key=int)
@@ -18,13 +17,6 @@ def calculate_distance_dict(finger_coords, nose_coords):
         distances[f] = np.sqrt((fx - nx)**2 + (fy - ny)**2)
 
     return distances
-
-
-def negate_dict(d):
-    """
-    Negate the values of a numeric dictionary.
-    """
-    return {k: -v for k, v in d.items()}
 
 
 def calculate_angle_dict(shoulder, elbow, wrist):
@@ -64,6 +56,14 @@ def filter_by_angle_threshold(dist_dict, angle_dict, angle_thresh=140):
     }
     return filtered
 
+def tremor_asymmetry_orders(left_tremor, right_tremor, eps=1e-12):
+    """
+    כמה 'סדרי-גודל' מפרידים בין הידיים.
+    0 = סימטרי, 1 = פי 10, 2 = פי 100, וכו'.
+    """
+    L = float(left_tremor) + eps
+    R = float(right_tremor) + eps
+    return abs(np.log10(L / R))
 
 def compute_tremor(tip_coords, fps, tremor_band=(4, 12)):
 
@@ -99,21 +99,19 @@ def detect_finger_to_nose_events(dist_dict,
         kernel = np.ones(window) / window
         return np.convolve(sig, kernel, mode="same")
 
-    def find_valleys(signal, prominence, width_rel):
-        """Find valleys (minima) in 1D signal using inverted peaks."""
+    def find_valleys(signal, prominence=0.05, width_rel=0.4):
+        """Find distinct valleys (minima) in 1D signal."""
         amplitude = signal.max() - signal.min()
         if amplitude == 0:
             return []
 
         prom = amplitude * prominence
-        inverted = -signal  # valleys → peaks
+        inverted = -signal  # valleys → peaks in inverted signal
+        peaks, props = find_peaks(inverted, prominence=prom, width=1)
 
-        peaks, _ = find_peaks(inverted, prominence=prom)
-        if len(peaks) == 0:
-            return []
-
-        _, _, left_ips, right_ips = peak_widths(
-            signal.max() - signal, peaks, rel_height=width_rel
+        # Measure valley width directly on inverted signal
+        widths, _, left_ips, right_ips = peak_widths(
+            inverted, peaks, rel_height=width_rel
         )
 
         valleys = []
@@ -155,6 +153,55 @@ def detect_finger_to_nose_events(dist_dict,
     return result
 
 
+import matplotlib.pyplot as plt
+
+def plot_finger_to_nose_distances(left_dist, right_dist,
+                                  left_events=None,
+                                  right_events=None,
+                                  title="Finger-to-Nose Distance Over Time"):
+    """
+    Plot left and right hand distances (to nose) over time, 
+    with detected valleys (events) marked.
+
+    Parameters
+    ----------
+    left_dist, right_dist : dict
+        frame → distance
+    left_events, right_events : dict or None
+        detected events {i: [frames]} (optional)
+    title : str
+        plot title
+    """
+
+    # Sort frames for alignment
+    left_frames = np.array(sorted(left_dist.keys(), key=int))
+    right_frames = np.array(sorted(right_dist.keys(), key=int))
+    left_vals = np.array([left_dist[f] for f in left_frames])
+    right_vals = np.array([right_dist[f] for f in right_frames])
+
+    plt.figure(figsize=(12, 5))
+    plt.plot(left_frames, left_vals, label="Left Distance", color="blue", lw=2)
+    plt.plot(right_frames, right_vals, label="Right Distance", color="red", lw=2, alpha=0.7)
+    plt.xlabel("Frame")
+    plt.ylabel("Finger–Nose Distance")
+    plt.title(title)
+    plt.grid(True, alpha=0.3)
+
+    # Mark detected valleys
+    def mark_events(events, color):
+        if not events:
+            return
+        for frames in events.values():
+            start, end = frames[0], frames[-1]
+            plt.axvspan(start, end, color=color, alpha=0.2)
+
+    mark_events(left_events, "blue")
+    mark_events(right_events, "red")
+
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
 def compute_finger_to_nose_biomarkers(left_events, right_events,
                                       left_dist, right_dist,
                                       left_tip, right_tip, fps):
@@ -170,8 +217,7 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
         if not events:
             return np.nan
         event_means = []
-        for e in events.values():
-            frames = e['frames']
+        for frames in events.values():  # now frames is a list directly
             d = [dist_dict[f] for f in frames if f in dist_dict]
             if len(d) > 0:
                 event_means.append(np.mean(d))
@@ -188,7 +234,7 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
     left_tremor = compute_tremor(left_tip, fps)
     right_tremor = compute_tremor(right_tip, fps)
 
-    tremor_symmetry = abs(left_tremor - right_tremor) / max(left_tremor, right_tremor) if (left_tremor and right_tremor) else np.nan
+    tremor_symmetry = tremor_asymmetry_orders(left_tremor, right_tremor)
 
     return {
         "left_mean_dist": left_score,
@@ -207,6 +253,14 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     """
 
     #landmarks
+    
+
+    for name, lm in coords["pose"].items():
+        coords["pose"][name] = {int(k): v for k, v in lm.items()}
+        
+    for name, lm in coords["hands"].items():
+        coords["hands"][name] = {int(k): v for k, v in lm.items()}
+        
     pose = coords["pose"]
     hands = coords["hands"]
 
@@ -222,9 +276,10 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     left_finger = hands["LEFT_HAND.INDEX_FINGER_TIP"]
     right_finger = hands["RIGHT_HAND.INDEX_FINGER_TIP"]
 
-    
+
     left_dist = calculate_distance_dict(left_finger, nose)
     right_dist = calculate_distance_dict(right_finger, nose)
+    
 
     left_angle = calculate_angle_dict(left_shoulder, left_elbow, left_wrist)
     right_angle = calculate_angle_dict(right_shoulder, right_elbow, right_wrist)
@@ -232,13 +287,23 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     filtered_left = filter_by_angle_threshold(left_dist, left_angle, angle_thresh=100)
     filtered_right = filter_by_angle_threshold(right_dist, right_angle, angle_thresh=100)
 
-    #  Negate
-    neg_left = negate_dict(filtered_left)
-    neg_right = negate_dict(filtered_right)
+    left_events = detect_finger_to_nose_events(filtered_left,
+                                            prominence=0.06,
+                                            width_rel=0.20,
+                                            smooth_win=5,
+                                            merge_gap=4)
+    right_events = detect_finger_to_nose_events(filtered_right,
+                                                prominence=0.06,
+                                                width_rel=0.20,
+                                                smooth_win=5,
+                                                merge_gap=4)
 
-    #Event detection per hand
-    left_events = detect_finger_to_nose_events(neg_left)
-    right_events = detect_finger_to_nose_events(neg_right)
+    print(f"right len: {len(right_events)}, right:{right_events}")
+    print(f"left len: {len(left_events)}, left:{left_events}")
+
+    
+    
+    plot_finger_to_nose_distances(filtered_left, filtered_right, left_events, right_events)
 
     #Compute biomarkers
     res = compute_finger_to_nose_biomarkers(
