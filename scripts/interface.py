@@ -1,49 +1,41 @@
+import ipywidgets as widgets
+from IPython.display import display, clear_output
 from scripts.automation import train, classify_video, test
-from IPython.display import clear_output
 
 supported_tests = ["straight_walk", "heel_to_toe_walk", "raise_hands", "finger_to_nose"]
 
-def main():
-  clear_output(wait=False)
-  while True:
-    while True:
-      chosen_operation = input("Choose train/classify/test/exit: ")
-      if chosen_operation in ["train", "classify", "exit", "test"]:
-        if not chosen_operation == "exit":
-          clear_output(wait=False)
-        break
-  
-    if chosen_operation == "train":
-      while True:
-        chosen_test = input("Enter requested test to train: ")
-        if chosen_test not in supported_tests:
-          print(f"Error: {chosen_test} test not supported.")
-        else:
-          break
-      train(chosen_test)
+operation_dropdown = widgets.Dropdown(
+    options=["train", "classify", "test"],
+    description="Operation:",
+)
 
-    if chosen_operation == "test":
-      while True:
-        chosen_test = input("Enter requested test to test: ")
-        if chosen_test not in supported_tests:
-          print(f"Error: {chosen_test} test not supported.")
-        else:
-          break
-      test(chosen_test)
-      
-    if chosen_operation == "classify":
-      while True:
-        chosen_test = input("Enter requested test to classify: ")
-        if chosen_test not in supported_tests:
-          print(f"Error: {chosen_test} test not supported.")
-        else:
-          break
-      filename = input("Enter name of video file: ")
-      try:
-        classify_video(chosen_test, filename)
-      except Exception as e:
-        print(e)
-        continue
-  
-    if chosen_operation == "exit":
-      break
+test_dropdown = widgets.Dropdown(
+    options=supported_tests,
+    description="Test:",
+)
+
+file_input = widgets.Text(
+    description="Video file:",
+    placeholder="example.mov",
+)
+
+run_button = widgets.Button(description="Run", button_style="success")
+output = widgets.Output()
+
+def on_run_clicked(b):
+    clear_output(wait=False)
+    with output:
+        chosen_operation = operation_dropdown.value
+        chosen_test = test_dropdown.value
+
+        if chosen_operation == "train":
+            train(chosen_test)
+        elif chosen_operation == "test":
+            test(chosen_test)
+        elif chosen_operation == "classify":
+            classify_video(chosen_test, file_input.value)
+
+run_button.on_click(on_run_clicked)
+
+ui = widgets.VBox([operation_dropdown, test_dropdown, file_input, run_button, output])
+display(ui)
