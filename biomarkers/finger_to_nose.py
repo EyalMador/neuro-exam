@@ -314,4 +314,6 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
 
     print("Finger-to-Nose Biomarkers:")
     print(res)
+    save_biomarkers_json(res, output_dir, filename)
     return res
+
