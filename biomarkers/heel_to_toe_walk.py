@@ -63,7 +63,7 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
     if len(distances_minimums['left']['min_frames']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
         return {'error': 'No data detected'}
 
-    # NEW: Get smoothed data for cross-validation
+    # Get smoothed data for cross-validation
     left_smoothed = distances_minimums['left']['smoothed_distances']
     right_smoothed = distances_minimums['right']['smoothed_distances']
 
@@ -91,36 +91,26 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
             if (other_val - current_min) <= 30:
                 continue
             
-            # Check 2: NEW - Ensure this is a TRUE minimum, not a pathological crossing
-            # Look at points before and after the minimum
-            window = 3  # Look 3 frames before and after
+            # Check 2: Ensure this is a TRUE minimum, not a pathological crossing
+            window = 3
             start_idx = max(0, min_idx - window)
             end_idx = min(len(current_smoothed), min_idx + window)
             
-            # In a normal meeting point, the minimum should be a local valley
-            # The distance should increase as we move away from it
             local_segment = current_smoothed[start_idx:end_idx+1]
-            
-            # Find the actual minimum in this segment
             actual_min_in_segment = np.min(local_segment)
             
-            # If the detected minimum is NOT the true minimum in its neighborhood,
-            # it's likely a crossing artifact - SKIP IT
-            if abs(current_min - actual_min_in_segment) > 5:  # tolerance for smoothing
+            if abs(current_min - actual_min_in_segment) > 5:
                 continue
             
-            # Check 3: NEW - Rate of change should be smooth (not too steep)
-            # Pathological crossings often have sharp spikes
+            # Check 3: Rate of change should be smooth (not too steep)
             if min_idx > 0 and min_idx < len(current_smoothed) - 1:
                 slope_before = abs(current_smoothed[min_idx] - current_smoothed[min_idx - 1])
                 slope_after = abs(current_smoothed[min_idx + 1] - current_smoothed[min_idx])
                 
-                # If slopes are too steep/asymmetric, it's likely noise/crossing
                 max_slope = max(slope_before, slope_after)
-                if max_slope > 50:  # Adjust threshold based on your data
+                if max_slope > 50:
                     continue
             
-            # All checks passed - this is a valid meeting point
             valid_indices.append(i)
         
         # Keep only valid minimums
@@ -140,10 +130,52 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
             intervals = np.diff(min_frames)
             interval_std = np.std(intervals)
             interval_mean = np.mean(intervals)
-            # Coefficient of variation: should be LOW for normal gait
             regularity_scores[side] = interval_std / interval_mean if interval_mean > 0 else 999
         else:
             regularity_scores[side] = 0
+
+    # NEW: Calculate per-cycle amplitude consistency
+    amplitude_consistency_scores = {}
+    
+    for side in ['left', 'right']:
+        min_frames = distances_minimums[side]['min_frames'].astype(int)
+        min_indices = distances_minimums[side]['min_indices']
+        
+        if side == 'left':
+            current_smoothed = left_smoothed
+            other_smoothed = right_smoothed
+        else:
+            current_smoothed = right_smoothed
+            other_smoothed = left_smoothed
+        
+        # For each minimum, calculate the "cycle amplitude"
+        # This is the difference between the other line and current line at that point
+        cycle_amplitudes = []
+        
+        for min_idx in min_indices:
+            current_min = current_smoothed[min_idx]
+            other_val = other_smoothed[min_idx]
+            
+            # Amplitude = how much the other line is above at this meeting point
+            amplitude = other_val - current_min
+            cycle_amplitudes.append(amplitude)
+        
+        cycle_amplitudes = np.array(cycle_amplitudes)
+        
+        if len(cycle_amplitudes) > 1:
+            # Calculate consistency: low std relative to mean = consistent cycles = normal
+            amplitude_mean = np.mean(cycle_amplitudes)
+            amplitude_std = np.std(cycle_amplitudes)
+            
+            # Coefficient of variation for amplitudes
+            amplitude_cv = amplitude_std / amplitude_mean if amplitude_mean > 0 else 999
+            amplitude_consistency_scores[side] = amplitude_cv
+        else:
+            amplitude_consistency_scores[side] = 0
+    
+    # Calculate overall amplitude consistency (should be low for normal gait)
+    overall_amplitude_cv = np.mean([amplitude_consistency_scores['left'], 
+                                     amplitude_consistency_scores['right']])
 
     statistics = {}
     for side in ['left', 'right']:
@@ -158,12 +190,14 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
                 'count': len(side_distances_minimums),
                 'all': list(side_distances_minimums),
                 'all_distances': distance_data,
-                'regularity': float(regularity_scores[side])
+                'regularity': float(regularity_scores[side]),
+                'amplitude_consistency': float(amplitude_consistency_scores[side])
 
             }
     
     statistics['symmetry_score'] = helper.calc_symmetry(statistics['left'], statistics['right'])
     statistics['regularity_mean'] = float(np.mean([regularity_scores['left'], regularity_scores['right']]))
+    statistics['amplitude_consistency_mean'] = float(overall_amplitude_cv)
         
     return statistics
 
@@ -181,8 +215,9 @@ def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename):
     biomarkers["htt_distances_right"] = htt_distances['right']
     biomarkers["htt_distances_symmetry"] = htt_distances['symmetry_score']
     biomarkers["htt_distances_regularity"] = htt_distances['regularity_mean']
-    biomarkers["htt_distances_left_regularity"] = htt_distances['left']['regularity']
-    biomarkers["htt_distances_right_regularity"] = htt_distances['right']['regularity']
+    #biomarkers["htt_distances_left_regularity"] = htt_distances['left']['regularity']
+    #biomarkers["htt_distances_right_regularity"] = htt_distances['right']['regularity']
+    biomarkers["htt_amplitude"] = htt_distances["amplitude_consistency_mean"]
 
     biomarkers['knee_angles_left'] = knee_biomarkers['left']
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
