@@ -304,6 +304,26 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
 
     print(f"right len: {len(right_events)}, right:{right_events}")
     print(f"left len: {len(left_events)}, left:{left_events}")
+    
+    
+    
+    #check - angle dict plot--------
+    frames_L = sorted(left_angle.keys())
+    frames_R = sorted(right_angle.keys())
+
+    plt.figure(figsize=(10, 4))
+    plt.plot(frames_L, [left_angle[f] for f in frames_L], label="Left Elbow Angle", color='blue')
+    plt.plot(frames_R, [right_angle[f] for f in frames_R], label="Right Elbow Angle", color='red', alpha=0.7)
+    plt.axhline(140, color='gray', ls='--', lw=1)  # example threshold
+    plt.title("Elbow Angle Over Time")
+    plt.xlabel("Frame")
+    plt.ylabel("Angle (degrees)")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+    
+    #end of check
 
     
     
