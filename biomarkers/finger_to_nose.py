@@ -292,14 +292,14 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     filtered_right = filter_by_angle_threshold(right_dist, right_angle, angle_thresh=50)
 
     left_events = detect_finger_to_nose_events(filtered_left,
-                                            prominence=0.06,
-                                            width_rel=0.20,
-                                            smooth_win=5,
+                                            prominence=0.04,
+                                            width_rel=0.25,
+                                            smooth_win=7,
                                             merge_gap=4)
     right_events = detect_finger_to_nose_events(filtered_right,
-                                                prominence=0.06,
-                                                width_rel=0.20,
-                                                smooth_win=5,
+                                                prominence=0.04,
+                                                width_rel=0.25,
+                                                smooth_win=7,
                                                 merge_gap=4)
 
     print(f"right len: {len(right_events)}, right:{right_events}")
