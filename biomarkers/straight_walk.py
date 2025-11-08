@@ -43,6 +43,62 @@ def plot_knee_angles(knee_angles):
     plt.tight_layout()
     plt.show()
 
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def plot_step_analysis(left_heel, right_heel, fps=30):
+    """
+    Simple plot of heel heights and step statistics.
+    """
+    frames = range(len(left_heel))
+    
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    
+    # Left heel height
+    left_ys = []
+    left_frames = []
+    for frame in frames:
+        frame_str = str(frame)
+        if frame_str in left_heel:
+            left_ys.append(left_heel[frame_str]['y'])
+            left_frames.append(frame)
+    
+    axes[0].plot(left_frames, left_ys, 'b-', linewidth=2, label='Left')
+    
+    # Right heel height
+    right_ys = []
+    right_frames = []
+    for frame in frames:
+        frame_str = str(frame)
+        if frame_str in right_heel:
+            right_ys.append(right_heel[frame_str]['y'])
+            right_frames.append(frame)
+    
+    axes[0].plot(right_frames, right_ys, 'r-', linewidth=2, label='Right')
+    axes[0].set_title('Heel Heights Over Time')
+    axes[0].set_xlabel('Frame')
+    axes[0].set_ylabel('Height (pixels)')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    
+    # Statistics
+    axes[1].axis('off')
+    
+    stats = f"Left Heel:\n"
+    stats += f"  Mean: {np.mean(left_ys):.2f}\n"
+    stats += f"  Std:  {np.std(left_ys):.2f}\n\n"
+    stats += f"Right Heel:\n"
+    stats += f"  Mean: {np.mean(right_ys):.2f}\n"
+    stats += f"  Std:  {np.std(right_ys):.2f}\n"
+    
+    axes[1].text(0.1, 0.5, stats, fontsize=12, fontfamily='monospace',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+    
+    plt.tight_layout()
+    plt.show()
+
 def gait_parameters(left_hip, right_hip, left_shoulder, right_shoulder, 
                                left_elbow, right_elbow):
 
@@ -167,7 +223,7 @@ def foot_size_pixels(heel, toe):
     return np.linalg.norm(heel_np - toe_np)
 
 def detect_steps(left_heel, left_toe, right_heel, right_toe):
-
+    """
     frames = range(len(left_heel))
     
     steps = {
@@ -212,6 +268,39 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
                 step_start = heel_strike_frames[i]
                 step_end = heel_strike_frames[i + 1]
                 steps[foot].append((step_start, step_end))
+    
+    return steps
+    """
+
+    frames = range(len(left_heel))
+    steps = {'left': [], 'right': []}
+    
+    for foot, heel in [('left', left_heel), ('right', right_heel)]:
+        heel_xs = []  # Forward motion (x-axis)
+        frames_list = []
+        
+        for frame in frames:
+            frame_str = str(frame)
+            if frame_str in heel:
+                heel_xs.append(heel[frame_str]['x'])
+                frames_list.append(frame)
+        
+        # Detect where motion changes (velocity zero crossings)
+        if len(heel_xs) > 2:
+            velocities = np.diff(heel_xs)
+            # Simple: group frames into steps based on motion pauses
+            in_step = False
+            step_start = None
+            
+            for i, vel in enumerate(velocities):
+                if abs(vel) > 1:  # Moving
+                    if not in_step:
+                        in_step = True
+                        step_start = frames_list[i]
+                else:  # Paused/minimal motion
+                    if in_step:
+                        steps[foot].append((step_start, frames_list[i]))
+                        in_step = False
     
     return steps
 
@@ -482,8 +571,7 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
 
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     
-    # Plot knee angles
-    plot_knee_angles(knee_angles)
+    #plot_knee_angles(knee_angles)
     
     # Filter out unrealistic angles (< 90° or > 180° indicate errors/abnormality)
     for side in ['left', 'right', 'all']:
@@ -576,6 +664,8 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
     knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
 
+    plot_step_analysis(left_heel, right_heel, fps=30)
+
     biomarkers["step_time_regularity"] = steps_biomarkers["step_time"]["regularity"]
     biomarkers["step_height_regularity"] = steps_biomarkers["step_height"]["regularity"]
     biomarkers["step_height_asymmetry"] = steps_biomarkers["step_height"]["asymmetry"]
@@ -584,6 +674,8 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     
     biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
     biomarkers['knee_regularity_mean'] = knee_biomarkers['regularity_mean']
+    biomarkers['knee_angles_left'] = knee_biomarkers['left']
+    biomarkers['knee_angles_right'] = knee_biomarkers['right']
     biomarkers['knee_amplitude_asymmetry'] = knee_biomarkers['amplitude_asymmetry']
     
     if has_upper_body:
@@ -608,8 +700,7 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     # biomarkers["step_height_mean"] = steps_biomarkers["step_height"]["mean"]  # Regularity more important
     # biomarkers["stance_stability"] = steps_biomarkers["stance_stability"]  # Use only asymmetry
     # biomarkers["stance_stability_mean"] = steps_biomarkers["stance_stability"]["mean"]
-    # biomarkers['knee_angles_left'] = knee_biomarkers['left']  # Too detailed, use symmetry instead
-    # biomarkers['knee_angles_right'] = knee_biomarkers['right']
+
 
     save_biomarkers_json(biomarkers, output_dir, filename)
 
