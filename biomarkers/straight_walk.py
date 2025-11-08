@@ -272,7 +272,7 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
     return steps
     """
 
-        frames = range(len(left_heel))
+    frames = range(len(left_heel))
     steps = {'left': [], 'right': []}
     
     for foot, heel in [('left', left_heel), ('right', right_heel)]:
