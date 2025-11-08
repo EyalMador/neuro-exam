@@ -288,8 +288,8 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     left_angle = calculate_angle_dict(left_shoulder, left_elbow, left_wrist)
     right_angle = calculate_angle_dict(right_shoulder, right_elbow, right_wrist)
 
-    filtered_left = filter_by_angle_threshold(left_dist, left_angle, angle_thresh=50)
-    filtered_right = filter_by_angle_threshold(right_dist, right_angle, angle_thresh=50)
+    filtered_left = filter_by_angle_threshold(left_dist, left_angle, angle_thresh=60)
+    filtered_right = filter_by_angle_threshold(right_dist, right_angle, angle_thresh=60)
 
     left_events = detect_finger_to_nose_events(filtered_left,
                                             prominence=0.03,
