@@ -56,6 +56,7 @@ def foot_size_pixels(heel, toe):
     return np.linalg.norm(heel_np - toe_np)
 
 def detect_steps(left_heel, left_toe, right_heel, right_toe):
+
     frames = range(len(left_heel))
     
     steps = {
@@ -64,98 +65,152 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
     }
     
     for foot, heel, toe in [('left', left_heel, left_toe), 
-                                      ('right', right_heel, right_toe)]:
-        in_step = False
-        step_start = None
-
-        """ 
-        gaps = [abs(heel[str(frame)]['y'] - toe[str(frame)]['y']) for frame in frames]
-        non_zero_gaps = [gap for gap in gaps if gap > 0]
-        #min_gap = min(non_zero_gaps) if non_zero_gaps else 0
-        min_gap = 0
-        print(f'min gap {min_gap}')
-
-        """
-
+                            ('right', right_heel, right_toe)]:
+        # Extract heel heights (y-coordinates)
+        heel_heights = {}
         for frame in frames:
             frame_str = str(frame)
-
-            heel_coords = heel[frame_str]
-            toe_coords = toe[frame_str]
-            
-
-            foot_is_flat = is_foot_flat(heel_coords, toe_coords, 0.25)
-            
-            #step start
-            if not foot_is_flat and not in_step:
-                in_step = True
-                step_start = frame
-
-            #step end
-            elif foot_is_flat and in_step:
-                in_step = False
-                if step_start is not None:
-                    steps[foot].append((step_start, frame))
-                step_start = None
-
+            if frame_str in heel:
+                heel_heights[frame] = heel[frame_str]['y']
+        
+        if not heel_heights:
+            continue
+        
+        # Sort frames and extract heights array
+        frames_sorted = sorted(heel_heights.keys())
+        heights_array = np.array([heel_heights[f] for f in frames_sorted])
+        
+        # Smooth to reduce noise
+        if len(heights_array) > 7:
+            from biomarkers.helper import smooth_datapoints
+            smoothed_heights = smooth_datapoints(heights_array, method='savgol', 
+                                                window_length=7, polyorder=3)
+        else:
+            smoothed_heights = heights_array
+        
+        # Find local minima (heel strikes = lowest points in y-coordinate)
+        inverted = -smoothed_heights
+        min_indices, properties = find_peaks(inverted, prominence=0.5, distance=8)
+        
+        # Convert indices back to frame numbers
+        heel_strike_frames = [frames_sorted[idx] for idx in min_indices]
+        
+        # Extract step intervals from consecutive heel strikes
+        if len(heel_strike_frames) >= 2:
+            for i in range(len(heel_strike_frames) - 1):
+                step_start = heel_strike_frames[i]
+                step_end = heel_strike_frames[i + 1]
+                steps[foot].append((step_start, step_end))
+    
     return steps
 
 
 def stride_lengths(heel, toe, steps, foot):
+
     stride_lengths_raw = []
     stride_lengths_normalized = []
+    step_heights = []  # NEW: vertical lift of foot
     
     foot_steps = steps[foot]
     if len(foot_steps) < 2:
-        return stride_lengths_raw, stride_lengths_normalized
+        return stride_lengths_raw, stride_lengths_normalized, step_heights
     
     for i in range(len(foot_steps) - 1):
-        frame1 = str(foot_steps[i][0])
-        frame2 = str(foot_steps[i][1])
+        frame1_start = str(foot_steps[i][0])
+        frame1_end = str(foot_steps[i][1])
+        frame2_start = str(foot_steps[i + 1][0])
+        frame2_end = str(foot_steps[i + 1][1])
         
-        if frame1 in heel and frame2 in heel and frame1 in toe and frame2 in toe:
-            heel1 = heel[frame1]
-            heel2 = heel[frame2]
-            toe1 = toe[frame1]
-            toe2 = toe[frame2]
+        if (frame1_start in heel and frame1_end in heel and 
+            frame2_start in heel and frame2_end in heel):
             
-            # Raw stride length (horizontal distance)
-            h1 = np.array([heel1['x'], 0, 0])
-            h2 = np.array([heel2['x'], 0, 0])
+            heel1_start = heel[frame1_start]
+            heel1_end = heel[frame1_end]
+            heel2_start = heel[frame2_start]
+            heel2_end = heel[frame2_end]
+            
+            # Raw stride = horizontal distance (may be small in parallel view)
+            h1 = np.array([heel1_start['x'], 0, 0])
+            h2 = np.array([heel2_start['x'], 0, 0])
             stride_length_raw = np.linalg.norm(h2 - h1)
             stride_lengths_raw.append(stride_length_raw)
             
-            # Foot size for normalization (average of both frames)
-            foot_size_frame1 = foot_size_pixels(heel1, toe1)
-            foot_size_frame2 = foot_size_pixels(heel2, toe2)
-            avg_foot_size = (foot_size_frame1 + foot_size_frame2) / 2
+            # Step height = how much heel lifts during swing phase
+            # Min y during first step's swing phase
+            min_y_frame1 = heel1_start['y']
+            max_y_frame1 = heel1_end['y']
             
-            stride_length_normalized = stride_length_raw / avg_foot_size if avg_foot_size > 0 else 0
-            stride_lengths_normalized.append(stride_length_normalized)
+            # Find peak height (min y, assuming y increases downward)
+            step_height = abs(max_y_frame1 - min_y_frame1)
+            
+            # Get foot size for normalization
+            if frame1_end in toe and frame2_end in toe:
+                toe1 = toe[frame1_end]
+                toe2 = toe[frame2_end]
+                foot_size_frame1 = foot_size_pixels(heel1_end, toe1)
+                foot_size_frame2 = foot_size_pixels(heel2_end, toe2)
+                avg_foot_size = (foot_size_frame1 + foot_size_frame2) / 2
+                
+                stride_length_normalized = stride_length_raw / avg_foot_size if avg_foot_size > 0 else 0
+                stride_lengths_normalized.append(stride_length_normalized)
+                
+                # Normalized step height
+                step_height_normalized = step_height / avg_foot_size if avg_foot_size > 0 else step_height
+                step_heights.append(step_height_normalized)
     
-    return stride_lengths_raw, stride_lengths_normalized
+    return stride_lengths_raw, stride_lengths_normalized, step_heights
 
 
 def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
+
     steps = detect_steps(left_heel, left_toe, right_heel, right_toe)
     
-    # stride lengths (both raw and normalized)
-    left_strides_raw, left_strides_norm = stride_lengths(left_heel, left_toe, steps, 'left')
-    right_strides_raw, right_strides_norm = stride_lengths(right_heel, right_toe, steps, 'right')
+    # stride lengths and step heights
+    left_strides_raw, left_strides_norm, left_heights = stride_lengths(left_heel, left_toe, steps, 'left')
+    right_strides_raw, right_strides_norm, right_heights = stride_lengths(right_heel, right_toe, steps, 'right')
     
     strides_norm = left_strides_norm + right_strides_norm
+    all_step_heights = left_heights + right_heights
     
     # step times
     step_times_data = step_times(steps, fps)
     step_times_all = step_times_data['all']
+    
+    # Stance stability: how stable foot position during stance phase
+    stance_stability_left = []
+    stance_stability_right = []
+    
+    for foot, heel, foot_steps in [('left', left_heel, steps['left']), 
+                                     ('right', right_heel, steps['right'])]:
+        for step_start, step_end in foot_steps:
+            heel_ys = []
+            for frame in range(step_start, step_end + 1):
+                frame_str = str(frame)
+                if frame_str in heel:
+                    heel_ys.append(heel[frame_str]['y'])
+            
+            if heel_ys:
+                # Stance stability = std of heel position (lower = more stable)
+                stability = np.std(heel_ys)
+                if foot == 'left':
+                    stance_stability_left.append(stability)
+                else:
+                    stance_stability_right.append(stability)
     
     # empty cases
     if not strides_norm or not step_times_all:
         return {
             'error': 'No steps detected',
             'step_size': {},
-            'step_time': {}
+            'step_time': {},
+            'step_height': {},
+            'stance_stability': {}
         }
+    
+    # Convert to float lists
+    strides_norm = [float(x) for x in strides_norm]
+    step_times_all = [float(x) for x in step_times_all]
+    all_step_heights = [float(x) for x in all_step_heights]
     
     # Calculate regularity for normalized step sizes
     step_size_regularity = 0
@@ -165,7 +220,7 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
         step_size_mean = np.mean(strides_array)
         step_size_regularity = step_size_std / step_size_mean if step_size_mean > 0 else 999
     
-    # Calculate regularity for step times
+    # Calculate regularity for step times (MOST IMPORTANT for parallel gait)
     step_time_regularity = 0
     if len(step_times_all) > 2:
         times_array = np.array(step_times_all)
@@ -173,17 +228,38 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
         step_time_mean = np.mean(times_array)
         step_time_regularity = step_time_std / step_time_mean if step_time_mean > 0 else 999
     
-    # Calculate left-right asymmetry in normalized step sizes
-    left_strides_array = np.array(left_strides_norm) if left_strides_norm else np.array([0])
-    right_strides_array = np.array(right_strides_norm) if right_strides_norm else np.array([0])
+    # Calculate regularity for step heights
+    step_height_regularity = 0
+    if len(all_step_heights) > 2:
+        heights_array = np.array(all_step_heights)
+        step_height_std = np.std(heights_array)
+        step_height_mean = np.mean(heights_array)
+        step_height_regularity = step_height_std / step_height_mean if step_height_mean > 0 else 999
+    
+    # Left-right asymmetry in step heights (indicates weakness on one side)
+    left_strides_array = np.array(left_heights) if left_heights else np.array([0.0])
+    right_strides_array = np.array(right_heights) if right_heights else np.array([0.0])
     
     left_mean = np.mean(left_strides_array) if len(left_strides_array) > 0 else 0
     right_mean = np.mean(right_strides_array) if len(right_strides_array) > 0 else 0
     
-    # Asymmetry index
-    step_asymmetry = 0
+    step_height_asymmetry = 0
     if (left_mean + right_mean) > 0:
-        step_asymmetry = abs(left_mean - right_mean) / ((left_mean + right_mean) / 2) if ((left_mean + right_mean) / 2) > 0 else 999
+        step_height_asymmetry = abs(left_mean - right_mean) / ((left_mean + right_mean) / 2)
+    
+    # Stance stability asymmetry
+    stance_stability_asymmetry = 0
+    if stance_stability_left and stance_stability_right:
+        left_stability_mean = np.mean(stance_stability_left)
+        right_stability_mean = np.mean(stance_stability_right)
+        if (left_stability_mean + right_stability_mean) > 0:
+            stance_stability_asymmetry = abs(left_stability_mean - right_stability_mean) / ((left_stability_mean + right_stability_mean) / 2)
+    
+    # Cadence (steps per minute)
+    cadence = 0
+    if step_times_all:
+        avg_step_time = np.mean(step_times_all)
+        cadence = 60 / avg_step_time if avg_step_time > 0 else 0
     
     return {
         'step_size': {
@@ -195,7 +271,7 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
             'count': len(strides_norm),
             'all': strides_norm,
             'regularity': float(step_size_regularity),
-            'asymmetry': float(step_asymmetry)
+            'asymmetry': float(0)  # Not reliable in parallel view
         },
         'step_time': {
             'mean': float(np.mean(step_times_all)),
@@ -205,9 +281,31 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
             'std': float(np.std(step_times_all)),
             'count': len(step_times_all),
             'all': step_times_all,
-            'regularity': float(step_time_regularity)
-        }
+            'regularity': float(step_time_regularity)  # CRITICAL METRIC
+        },
+        'step_height': {  # NEW: vertical foot clearance
+            'mean': float(np.mean(all_step_heights)),
+            'median': float(np.median(all_step_heights)),
+            'min': float(np.min(all_step_heights)),
+            'max': float(np.max(all_step_heights)),
+            'std': float(np.std(all_step_heights)),
+            'count': len(all_step_heights),
+            'all': all_step_heights,
+            'regularity': float(step_height_regularity),
+            'asymmetry': float(step_height_asymmetry),
+            'left_mean': float(left_mean),
+            'right_mean': float(right_mean)
+        },
+        'stance_stability': {  # NEW: stability during weight bearing
+            'mean': float(np.mean(stance_stability_left + stance_stability_right)) if (stance_stability_left + stance_stability_right) else 0,
+            'left_mean': float(np.mean(stance_stability_left)) if stance_stability_left else 0,
+            'right_mean': float(np.mean(stance_stability_right)) if stance_stability_right else 0,
+            'asymmetry': float(stance_stability_asymmetry),
+            'all': [float(x) for x in (stance_stability_left + stance_stability_right)]
+        },
+        'cadence': float(cadence)  # NEW: steps per minute
     }
+
 
 
 def step_times(steps, fps):
@@ -224,87 +322,6 @@ def step_times(steps, fps):
             step_times['all'].append(step_duration)
     
     return step_times
-
-def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
-    steps = detect_steps(left_heel, left_toe, right_heel, right_toe)
-    
-    # stride lengths (both raw and normalized)
-    left_strides_raw, left_strides_norm = stride_lengths(left_heel, left_toe, steps, 'left')
-    right_strides_raw, right_strides_norm = stride_lengths(right_heel, right_toe, steps, 'right')
-    
-    strides_norm = left_strides_norm + right_strides_norm
-    
-    # step times
-    step_times_data = step_times(steps, fps)
-    step_times_all = step_times_data['all']
-    
-    # empty cases
-    if not strides_norm or not step_times_all:
-        return {
-            'error': 'No steps detected',
-            'step_size': {},
-            'step_time': {}
-        }
-    
-    # Convert to float lists (not numpy arrays with 'all')
-    strides_norm = [float(x) for x in strides_norm]
-    step_times_all = [float(x) for x in step_times_all]
-    
-    # Calculate regularity for normalized step sizes
-    step_size_regularity = 0
-    if len(strides_norm) > 2:
-        strides_array = np.array(strides_norm)
-        step_size_std = np.std(strides_array)
-        step_size_mean = np.mean(strides_array)
-        step_size_regularity = step_size_std / step_size_mean if step_size_mean > 0 else 999
-    
-    # Calculate regularity for step times
-    step_time_regularity = 0
-    if len(step_times_all) > 2:
-        times_array = np.array(step_times_all)
-        step_time_std = np.std(times_array)
-        step_time_mean = np.mean(times_array)
-        step_time_regularity = step_time_std / step_time_mean if step_time_mean > 0 else 999
-    
-    # Calculate left-right asymmetry in normalized step sizes
-    left_strides_array = np.array(left_strides_norm) if left_strides_norm else np.array([0.0])
-    right_strides_array = np.array(right_strides_norm) if right_strides_norm else np.array([0.0])
-    
-    left_mean = np.mean(left_strides_array) if len(left_strides_array) > 0 else 0
-    right_mean = np.mean(right_strides_array) if len(right_strides_array) > 0 else 0
-    
-    # Asymmetry index
-    step_asymmetry = 0
-    if (left_mean + right_mean) > 0:
-        step_asymmetry = abs(left_mean - right_mean) / ((left_mean + right_mean) / 2) if ((left_mean + right_mean) / 2) > 0 else 999
-    
-    return {
-        'step_size': {
-            'mean': float(np.mean(strides_norm)),
-            'median': float(np.median(strides_norm)),
-            'min': float(np.min(strides_norm)),
-            'max': float(np.max(strides_norm)),
-            'std': float(np.std(strides_norm)),
-            'count': len(strides_norm),
-            'all': strides_norm,
-            'regularity': float(step_size_regularity),
-            'asymmetry': float(step_asymmetry)
-        },
-        'step_time': {
-            'mean': float(np.mean(step_times_all)),
-            'median': float(np.median(step_times_all)),
-            'min': float(np.min(step_times_all)),
-            'max': float(np.max(step_times_all)),
-            'std': float(np.std(step_times_all)),
-            'count': len(step_times_all),
-            'all': step_times_all,
-            'regularity': float(step_time_regularity)
-        }
-    }
-
-
-
-
 
 
 def calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
@@ -451,12 +468,12 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
     biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
     biomarkers['knee_regularity_mean'] = knee_biomarkers['regularity_mean']
-    biomarkers['knee_regularity_left'] = knee_biomarkers['left']['regularity']
-    biomarkers['knee_regularity_right'] = knee_biomarkers['right']['regularity']
-    biomarkers['knee_min_angle_left'] = knee_biomarkers['left']['min_angle']
-    biomarkers['knee_min_angle_right'] = knee_biomarkers['right']['min_angle']
-    biomarkers['knee_amplitude_left'] = knee_biomarkers['left']['amplitude']
-    biomarkers['knee_amplitude_right'] = knee_biomarkers['right']['amplitude']
+    #biomarkers['knee_regularity_left'] = knee_biomarkers['left']['regularity']
+    #biomarkers['knee_regularity_right'] = knee_biomarkers['right']['regularity']
+    #biomarkers['knee_min_angle_left'] = knee_biomarkers['left']['min_angle']
+    #biomarkers['knee_min_angle_right'] = knee_biomarkers['right']['min_angle']
+    #biomarkers['knee_amplitude_left'] = knee_biomarkers['left']['amplitude']
+    #biomarkers['knee_amplitude_right'] = knee_biomarkers['right']['amplitude']
     biomarkers['knee_amplitude_asymmetry'] = knee_biomarkers['amplitude_asymmetry']
 
     #helper.plot_biomarkers(biomarkers, "straight_walk")
