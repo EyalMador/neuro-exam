@@ -6,11 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import subprocess
 
-
-from .media_pipe_wrapper import MPModel
-from .rtm_wrapper import RTMModel
-
-
 def get_video(path):
     if not os.path.exists(path):
         raise FileNotFoundError(f"Video not found at {path}")
@@ -129,6 +124,7 @@ def plot_xyz(video_coords, landmark, fps, show):
 def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video_name):
     
     if lib == 'mediapipe':
+        from .media_pipe_wrapper import MPModel
         # Pose only
         if m_type == "pose":
             cap, rotation = get_video(source_video_path)
@@ -182,6 +178,7 @@ def get_landmarks(lib, m_type, source_video_path, output_video_dir, output_video
     
     
     elif lib == 'rtmlib':
+        from .rtm_wrapper import RTMModel
         if m_type != "body26":
             raise ValueError("RTMLib only supports model_type='body26' for now.")
 
