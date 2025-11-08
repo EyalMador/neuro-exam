@@ -40,6 +40,7 @@ def extract_landmarks(test_type, is_test, video_name=None):
   #Classify:
   if video_name is not None and not is_test:
     video_path = CLASSIFY_PATH + '/' + video_name
+    #Add check for finger to nose to run mediapipe:
     run_extraction_with_args(video_path, LANDMARKS_FOLDER_PATH, 'rtmlib', 'body26', video_name, LANDMARKS_FOLDER_PATH)
     return
 
@@ -58,7 +59,10 @@ def extract_landmarks(test_type, is_test, video_name=None):
       landmark_videos_dir = video_dir_path + f'/Landmark Videos'
       create_temp_folder([landmark_videos_dir])
       video_path = video_dir_path + f'/{filename}'
-      run_extraction_with_args(video_path, video_dir_path, 'rtmlib', 'body26', filename, landmark_videos_dir)
+      if test_type == 'finger_to_nose':
+        run_extraction_with_args(video_path, video_dir_path, 'mediapipe', 'holistic', filename, landmark_videos_dir)
+      else:
+        run_extraction_with_args(video_path, video_dir_path, 'rtmlib', 'body26', filename, landmark_videos_dir)
     else:
       print(f"{filename} landmarks already extracted, skipping...")
     copy_file(video_dir_path, LANDMARKS_FOLDER_PATH, filename_json)      

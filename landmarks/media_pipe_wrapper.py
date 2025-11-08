@@ -1,7 +1,10 @@
 import os
 import cv2
-import mediapipe as mp
 from .model import Frame, Video
+try:
+    import mediapipe as mp
+except:
+    pass
 
 
 class MPModel:
