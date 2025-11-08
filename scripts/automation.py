@@ -59,7 +59,7 @@ def extract_landmarks(test_type, is_test, video_name=None):
       landmark_videos_dir = video_dir_path + f'/Landmark Videos'
       create_temp_folder([landmark_videos_dir])
       video_path = video_dir_path + f'/{filename}'
-      if test_type = 'finger_to_nose':
+      if test_type == 'finger_to_nose':
         run_extraction_with_args(video_path, video_dir_path, 'mediapipe', 'holistic', filename, landmark_videos_dir)
       else:
         run_extraction_with_args(video_path, video_dir_path, 'rtmlib', 'body26', filename, landmark_videos_dir)
