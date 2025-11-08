@@ -43,6 +43,116 @@ def plot_knee_angles(knee_angles):
     plt.tight_layout()
     plt.show()
 
+def gait_parameters(left_hip, right_hip, left_shoulder, right_shoulder, 
+                               left_elbow, right_elbow):
+
+    frames = range(len(left_hip))
+    
+    biomarkers = {
+        'hip_vertical_stability': None,
+        'hip_depth_motion': None,
+        'shoulder_vertical_stability': None,
+        'arm_swing_height_left': None,
+        'arm_swing_height_right': None,
+        'arm_swing_asymmetry': None,
+        'torso_lean': None
+    }
+    
+    # Hip vertical stability (lower = better, less bobbing = more efficient)
+    left_hip_ys = []
+    right_hip_ys = []
+    left_hip_zs = []
+    right_hip_zs = []
+    
+    for frame in frames:
+        frame_str = str(frame)
+        if frame_str in left_hip:
+            left_hip_ys.append(left_hip[frame_str]['y'])
+            left_hip_zs.append(left_hip[frame_str].get('z', 0))
+        if frame_str in right_hip:
+            right_hip_ys.append(right_hip[frame_str]['y'])
+            right_hip_zs.append(right_hip[frame_str].get('z', 0))
+    
+    if left_hip_ys and right_hip_ys:
+        # Vertical stability: std of y position (lower = less bobbing = efficient)
+        left_hip_stability = np.std(left_hip_ys)
+        right_hip_stability = np.std(right_hip_ys)
+        avg_hip_stability = (left_hip_stability + right_hip_stability) / 2
+        biomarkers['hip_vertical_stability'] = float(avg_hip_stability)
+        
+        # Hip depth motion (z-axis): forward/backward sway
+        if left_hip_zs and right_hip_zs:
+            hip_depths = []
+            for f in frames:
+                frame_str = str(f)
+                if frame_str in left_hip and frame_str in right_hip:
+                    left_z = left_hip[frame_str].get('z', 0)
+                    right_z = right_hip[frame_str].get('z', 0)
+                    avg_z = (left_z + right_z) / 2
+                    hip_depths.append(avg_z)
+            
+            if hip_depths:
+                biomarkers['hip_depth_motion'] = float(np.std(hip_depths))
+    
+    # Shoulder vertical stability
+    left_shoulder_ys = []
+    right_shoulder_ys = []
+    
+    for frame in frames:
+        frame_str = str(frame)
+        if frame_str in left_shoulder:
+            left_shoulder_ys.append(left_shoulder[frame_str]['y'])
+        if frame_str in right_shoulder:
+            right_shoulder_ys.append(right_shoulder[frame_str]['y'])
+    
+    if left_shoulder_ys and right_shoulder_ys:
+        shoulder_stability = (np.std(left_shoulder_ys) + np.std(right_shoulder_ys)) / 2
+        biomarkers['shoulder_vertical_stability'] = float(shoulder_stability)
+    
+    # Torso lean (forward lean = negative z)
+    if left_shoulder_ys and right_shoulder_ys:
+        left_shoulder_zs = []
+        right_shoulder_zs = []
+        for frame in frames:
+            frame_str = str(frame)
+            if frame_str in left_shoulder:
+                left_shoulder_zs.append(left_shoulder[frame_str].get('z', 0))
+            if frame_str in right_shoulder:
+                right_shoulder_zs.append(right_shoulder[frame_str].get('z', 0))
+        
+        if left_shoulder_zs and right_shoulder_zs:
+            avg_shoulder_z = (np.mean(left_shoulder_zs) + np.mean(right_shoulder_zs)) / 2
+            biomarkers['torso_lean'] = float(avg_shoulder_z)
+    
+    # Arm swing amplitude (vertical motion of elbows)
+    left_elbow_ys = []
+    right_elbow_ys = []
+    
+    for frame in frames:
+        frame_str = str(frame)
+        if frame_str in left_elbow:
+            left_elbow_ys.append(left_elbow[frame_str]['y'])
+        if frame_str in right_elbow:
+            right_elbow_ys.append(right_elbow[frame_str]['y'])
+    
+    if left_elbow_ys and len(left_elbow_ys) > 2:
+        left_arm_swing = max(left_elbow_ys) - min(left_elbow_ys)
+        biomarkers['arm_swing_height_left'] = float(left_arm_swing)
+    
+    if right_elbow_ys and len(right_elbow_ys) > 2:
+        right_arm_swing = max(right_elbow_ys) - min(right_elbow_ys)
+        biomarkers['arm_swing_height_right'] = float(right_arm_swing)
+    
+    # Arm swing asymmetry (reduced swing on one side = stroke, Parkinson's)
+    if biomarkers['arm_swing_height_left'] and biomarkers['arm_swing_height_right']:
+        left_amp = biomarkers['arm_swing_height_left']
+        right_amp = biomarkers['arm_swing_height_right']
+        if (left_amp + right_amp) > 0:
+            arm_asymmetry = abs(left_amp - right_amp) / ((left_amp + right_amp) / 2)
+            biomarkers['arm_swing_asymmetry'] = float(arm_asymmetry)
+    
+    return biomarkers
+
 
     
 def is_foot_flat(heel, toe, threshold = 0.5):
@@ -448,39 +558,59 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
     return statistics
 
 
+
 def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     rtm_names_landmarks = helper.indices_to_names(landmarks, lnc.rtm_mapping())
     [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle"])
     
+    try:
+        [left_shoulder, right_shoulder, left_elbow, right_elbow] = helper.extract_traj(
+            rtm_names_landmarks,
+            ["LShoulder", "RShoulder", "LElbow", "RElbow"])
+        has_upper_body = True
+    except KeyError:
+        has_upper_body = False
+        left_shoulder = right_shoulder = left_elbow = right_elbow = {}
 
     biomarkers = {}
     steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
     knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
 
-    # Step size biomarkers (now normalized by foot size)
-    biomarkers["step_size"] = steps_biomarkers["step_size"]
-    biomarkers["step_size_regularity"] = steps_biomarkers["step_size"]["regularity"]
-    biomarkers["step_size_asymmetry"] = steps_biomarkers["step_size"].get("asymmetry", 999)
-    biomarkers["step_time"] = steps_biomarkers["step_time"]
     biomarkers["step_time_regularity"] = steps_biomarkers["step_time"]["regularity"]
-    biomarkers["step_height_mean"] = steps_biomarkers["step_height"]["mean"]
     biomarkers["step_height_regularity"] = steps_biomarkers["step_height"]["regularity"]
     biomarkers["step_height_asymmetry"] = steps_biomarkers["step_height"]["asymmetry"]
-
-    biomarkers["stance_stability"] = steps_biomarkers["stance_stability"]
-    biomarkers["stance_stability_mean"] = steps_biomarkers["stance_stability"]["mean"]
     biomarkers["stance_stability_asymmetry"] = steps_biomarkers["stance_stability"]["asymmetry"]
-
     biomarkers["cadence"] = steps_biomarkers["cadence"]
-
-    # Knee angle biomarkers
-    biomarkers['knee_angles_left'] = knee_biomarkers['left']
-    biomarkers['knee_angles_right'] = knee_biomarkers['right']
+    
     biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
     biomarkers['knee_regularity_mean'] = knee_biomarkers['regularity_mean']
     biomarkers['knee_amplitude_asymmetry'] = knee_biomarkers['amplitude_asymmetry']
+    
+    if has_upper_body:
+        upper_body_biomarkers = gait_parameters(
+                left_hip, right_hip, left_shoulder, right_shoulder, 
+                left_elbow, right_elbow)
+        
+        biomarkers['arm_swing_asymmetry'] = upper_body_biomarkers['arm_swing_asymmetry']
+        biomarkers['hip_vertical_stability'] = upper_body_biomarkers['hip_vertical_stability']
 
-    #helper.plot_biomarkers(biomarkers, "straight_walk")
+    
+    # biomarkers['hip_depth_motion'] = upper_body_biomarkers['hip_depth_motion']
+    # biomarkers['shoulder_vertical_stability'] = upper_body_biomarkers['shoulder_vertical_stability']
+    # biomarkers['arm_swing_height_left'] = upper_body_biomarkers['arm_swing_height_left']
+    # biomarkers['arm_swing_height_right'] = upper_body_biomarkers['arm_swing_height_right']
+    # biomarkers['torso_lean'] = upper_body_biomarkers['torso_lean']
+    
+    # biomarkers["step_size"] = steps_biomarkers["step_size"]  # Unreliable in parallel view
+    # biomarkers["step_size_regularity"] = steps_biomarkers["step_size"]["regularity"]
+    # biomarkers["step_size_asymmetry"] = steps_biomarkers["step_size"].get("asymmetry", 999)
+    # biomarkers["step_time"] = steps_biomarkers["step_time"]  # Use only regularity, not full dict
+    # biomarkers["step_height_mean"] = steps_biomarkers["step_height"]["mean"]  # Regularity more important
+    # biomarkers["stance_stability"] = steps_biomarkers["stance_stability"]  # Use only asymmetry
+    # biomarkers["stance_stability_mean"] = steps_biomarkers["stance_stability"]["mean"]
+    # biomarkers['knee_angles_left'] = knee_biomarkers['left']  # Too detailed, use symmetry instead
+    # biomarkers['knee_angles_right'] = knee_biomarkers['right']
+
     save_biomarkers_json(biomarkers, output_dir, filename)
 
     return biomarkers
