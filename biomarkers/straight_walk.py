@@ -223,7 +223,7 @@ def foot_size_pixels(heel, toe):
     return np.linalg.norm(heel_np - toe_np)
 
 def detect_steps(left_heel, left_toe, right_heel, right_toe):
-
+    """
     frames = range(len(left_heel))
     
     steps = {
@@ -268,6 +268,39 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
                 step_start = heel_strike_frames[i]
                 step_end = heel_strike_frames[i + 1]
                 steps[foot].append((step_start, step_end))
+    
+    return steps
+    """
+
+        frames = range(len(left_heel))
+    steps = {'left': [], 'right': []}
+    
+    for foot, heel in [('left', left_heel), ('right', right_heel)]:
+        heel_xs = []  # Forward motion (x-axis)
+        frames_list = []
+        
+        for frame in frames:
+            frame_str = str(frame)
+            if frame_str in heel:
+                heel_xs.append(heel[frame_str]['x'])
+                frames_list.append(frame)
+        
+        # Detect where motion changes (velocity zero crossings)
+        if len(heel_xs) > 2:
+            velocities = np.diff(heel_xs)
+            # Simple: group frames into steps based on motion pauses
+            in_step = False
+            step_start = None
+            
+            for i, vel in enumerate(velocities):
+                if abs(vel) > 1:  # Moving
+                    if not in_step:
+                        in_step = True
+                        step_start = frames_list[i]
+                else:  # Paused/minimal motion
+                    if in_step:
+                        steps[foot].append((step_start, frames_list[i]))
+                        in_step = False
     
     return steps
 
