@@ -63,33 +63,68 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
     if len(distances_minimums['left']['min_frames']) == 0 or len(distances_minimums['right']['min_frames']) == 0:
         return {'error': 'No data detected'}
 
-    # Filter minimums: only keep if there's a clear crossing pattern
-    
+    # NEW: Get smoothed data for cross-validation
+    left_smoothed = distances_minimums['left']['smoothed_distances']
+    right_smoothed = distances_minimums['right']['smoothed_distances']
+
+    # Filter minimums: only keep if there's a clear crossing pattern AND no pathological crossing
     for side in ['left', 'right']:
         other_side = 'right' if side == 'left' else 'left'
         
         min_indices = distances_minimums[side]['min_indices']
         min_values = distances_minimums[side]['min_values']
-        left_smoothed = distances_minimums['left']['smoothed_distances']
-        right_smoothed = distances_minimums['right']['smoothed_distances']
+        
+        if side == 'left':
+            current_smoothed = left_smoothed
+            other_smoothed = right_smoothed
+        else:
+            current_smoothed = right_smoothed
+            other_smoothed = left_smoothed
         
         valid_indices = []
         
         for i, min_idx in enumerate(min_indices):
-            # At this minimum point, check if the other line is significantly higher
-            if side == 'left':
-                current_min = left_smoothed[min_idx]
-                other_val = right_smoothed[min_idx]
-            else:
-                current_min = right_smoothed[min_idx]
-                other_val = left_smoothed[min_idx]
+            current_min = current_smoothed[min_idx]
+            other_val = other_smoothed[min_idx]
             
-            # Only keep if other line is at least 30 pixels higher (threshold)
-            # This filters out noise crossings and keeps only clear crossing events
-            if (other_val - current_min) > 30:
-                valid_indices.append(i)
+            # Check 1: Other line must be significantly higher (crossing pattern)
+            if (other_val - current_min) <= 30:
+                continue
+            
+            # Check 2: NEW - Ensure this is a TRUE minimum, not a pathological crossing
+            # Look at points before and after the minimum
+            window = 3  # Look 3 frames before and after
+            start_idx = max(0, min_idx - window)
+            end_idx = min(len(current_smoothed), min_idx + window)
+            
+            # In a normal meeting point, the minimum should be a local valley
+            # The distance should increase as we move away from it
+            local_segment = current_smoothed[start_idx:end_idx+1]
+            
+            # Find the actual minimum in this segment
+            actual_min_in_segment = np.min(local_segment)
+            
+            # If the detected minimum is NOT the true minimum in its neighborhood,
+            # it's likely a crossing artifact - SKIP IT
+            if abs(current_min - actual_min_in_segment) > 5:  # tolerance for smoothing
+                continue
+            
+            # Check 3: NEW - Rate of change should be smooth (not too steep)
+            # Pathological crossings often have sharp spikes
+            if min_idx > 0 and min_idx < len(current_smoothed) - 1:
+                slope_before = abs(current_smoothed[min_idx] - current_smoothed[min_idx - 1])
+                slope_after = abs(current_smoothed[min_idx + 1] - current_smoothed[min_idx])
+                
+                # If slopes are too steep/asymmetric, it's likely noise/crossing
+                max_slope = max(slope_before, slope_after)
+                if max_slope > 50:  # Adjust threshold based on your data
+                    continue
+            
+            # All checks passed - this is a valid meeting point
+            valid_indices.append(i)
         
         # Keep only valid minimums
+        valid_indices = np.array(valid_indices)
         distances_minimums[side]['min_indices'] = min_indices[valid_indices]
         distances_minimums[side]['min_values'] = min_values[valid_indices]
         distances_minimums[side]['min_frames'] = distances_minimums[side]['min_frames'][valid_indices]
@@ -98,16 +133,14 @@ def local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_to
         return {'error': 'No data detected'}
 
     # Check for regularity: normal gait has consistent spacing between minima
-    # Calculate intervals between consecutive minima
     regularity_scores = {}
     for side in ['left', 'right']:
         min_frames = distances_minimums[side]['min_frames'].astype(int)
         if len(min_frames) > 2:
             intervals = np.diff(min_frames)
-            # Low std in intervals = regular pattern = normal gait
             interval_std = np.std(intervals)
             interval_mean = np.mean(intervals)
-            # Coefficient of variation: should be low for normal gait
+            # Coefficient of variation: should be LOW for normal gait
             regularity_scores[side] = interval_std / interval_mean if interval_mean > 0 else 999
         else:
             regularity_scores[side] = 0
