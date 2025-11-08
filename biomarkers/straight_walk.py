@@ -3,6 +3,7 @@ import biomarkers.helper as helper
 import landmarks.name_conventions as lnc
 import matplotlib.pyplot as plt
 from biomarkers.helper import save_biomarkers_json
+from scipy.signal import find_peaks
 
 
 
@@ -462,18 +463,21 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers["step_size_asymmetry"] = steps_biomarkers["step_size"].get("asymmetry", 999)
     biomarkers["step_time"] = steps_biomarkers["step_time"]
     biomarkers["step_time_regularity"] = steps_biomarkers["step_time"]["regularity"]
+    biomarkers["step_height_mean"] = steps_biomarkers["step_height"]["mean"]
+    biomarkers["step_height_regularity"] = steps_biomarkers["step_height"]["regularity"]
+    biomarkers["step_height_asymmetry"] = steps_biomarkers["step_height"]["asymmetry"]
+
+    biomarkers["stance_stability"] = steps_biomarkers["stance_stability"]
+    biomarkers["stance_stability_mean"] = steps_biomarkers["stance_stability"]["mean"]
+    biomarkers["stance_stability_asymmetry"] = steps_biomarkers["stance_stability"]["asymmetry"]
+
+    biomarkers["cadence"] = steps_biomarkers["cadence"]
 
     # Knee angle biomarkers
     biomarkers['knee_angles_left'] = knee_biomarkers['left']
     biomarkers['knee_angles_right'] = knee_biomarkers['right']
     biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
     biomarkers['knee_regularity_mean'] = knee_biomarkers['regularity_mean']
-    #biomarkers['knee_regularity_left'] = knee_biomarkers['left']['regularity']
-    #biomarkers['knee_regularity_right'] = knee_biomarkers['right']['regularity']
-    #biomarkers['knee_min_angle_left'] = knee_biomarkers['left']['min_angle']
-    #biomarkers['knee_min_angle_right'] = knee_biomarkers['right']['min_angle']
-    #biomarkers['knee_amplitude_left'] = knee_biomarkers['left']['amplitude']
-    #biomarkers['knee_amplitude_right'] = knee_biomarkers['right']['amplitude']
     biomarkers['knee_amplitude_asymmetry'] = knee_biomarkers['amplitude_asymmetry']
 
     #helper.plot_biomarkers(biomarkers, "straight_walk")
