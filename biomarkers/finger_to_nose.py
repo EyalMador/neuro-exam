@@ -67,23 +67,26 @@ def tremor_asymmetry_orders(left_tremor, right_tremor, eps=1e-12):
     return abs(np.log10(L / R))
 
 def compute_tremor(tip_coords, fps, tremor_band=(4, 12)):
-
     frames = sorted(tip_coords.keys(), key=int)
-    if len(frames) < fps:  # need at least 1 second of data
+    if len(frames) < fps:
         return np.nan
 
     x = np.array([tip_coords[f]['x'] for f in frames])
     y = np.array([tip_coords[f]['y'] for f in frames])
-    signal = np.sqrt((x - np.mean(x))**2 + (y - np.mean(y))**2)
-    signal = detrend(signal)
 
-    # Compute power spectral density
-    freqs, psd = welch(signal, fs=fps, nperseg=min(256, len(signal)))
+    vx = np.diff(x)
+    vy = np.diff(y)
+    vel = np.sqrt(vx**2 + vy**2)
+    vel = detrend(vel)
 
-    # Integrate PSD over the tremor frequency range (4–12 Hz)
+    freqs, psd = welch(vel, fs=fps, nperseg=min(256, len(vel)))
+
     mask = (freqs >= tremor_band[0]) & (freqs <= tremor_band[1])
     tremor_power = np.trapz(psd[mask], freqs[mask])
-    return float(tremor_power)
+    total_power = np.trapz(psd, freqs)
+
+    tremor_ratio = tremor_power / total_power if total_power > 0 else 0
+    return float(tremor_ratio)
 
 
 
