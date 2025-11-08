@@ -123,7 +123,7 @@ def indices_to_names(coords_dict, rtm_mapping):
 
 
 
-def smooth_datapoints(datapoints, method='savgol', window_length=11, polyorder=2, s=None):
+def smooth_datapoints(datapoints, method='savgol', window_length=11, polyorder=3, s=None):
     """
     Smooth landmarks using various methods.
     
