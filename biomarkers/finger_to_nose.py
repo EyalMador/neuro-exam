@@ -293,14 +293,14 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
 
     left_events = detect_finger_to_nose_events(filtered_left,
                                             prominence=0.01,
-                                            width_rel=0.20,
-                                            smooth_win=7,
-                                            merge_gap=4)
+                                            width_rel=0.25,
+                                            smooth_win=5,
+                                            merge_gap=15)
     right_events = detect_finger_to_nose_events(filtered_right,
                                                 prominence=0.01,
-                                                width_rel=0.20,
-                                                smooth_win=7,
-                                                merge_gap=4)
+                                                width_rel=0.25,
+                                                smooth_win=5,
+                                                merge_gap=15)
 
     print(f"right len: {len(right_events)}, right:{right_events}")
     print(f"left len: {len(left_events)}, left:{left_events}")
