@@ -578,8 +578,8 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     weights = {
             'stride_regularity': 0.0,
             'stride_symmetry': 0.0,
-            'step_timing': 0.0,
-            'knee_symmetry': 1.00,
+            'step_timing': 1.0,
+            'knee_symmetry': 0.00,
             'knee_rom': 0.0,
             'head_stability': 0.00
         }
