@@ -467,31 +467,31 @@ def gait_score(steps_biomarkers, knee_biomarkers, head, weights=None):
     # Extract data from biomarkers
     step_size_data = steps_biomarkers['step_size']
     step_time_data = steps_biomarkers['step_time']
-    left_knee = knee_biomarkers['knee_angles_left']
-    right_knee = knee_biomarkers['knee_angles_right']
+    left_knee = knee_biomarkers['left']
+    right_knee = knee_biomarkers['right']
     
     # Calculate component scores
     scores['stride_regularity'] = stride_regularity_score(
-        step_size_data.get('all', [])
+        step_size_data['all']
     )
     
     scores['stride_symmetry'] = stride_symmetry_score(
-        [s for s in step_size_data.get('all', [])][::2],
-        [s for s in step_size_data.get('all', [])][1::2]
+        [s for s in step_size_data['all']]
+        [s for s in step_size_data['all']]
     )
     
     scores['step_timing'] = step_timing_regularity_score(
-        step_time_data.get('all', [])
+        step_time_data['all']
     )
     
     scores['knee_symmetry'] = knee_flexion_symmetry_score(
-        left_knee.get('all', []),
-        right_knee.get('all', [])
+        left_knee['all']
+        right_knee['all']
     )
     
     scores['knee_rom'] = knee_range_of_motion_score(
-        left_knee,
-        right_knee
+        left_knee['all'],
+        right_knee['all']
     )
     
     scores['head_stability'] = head_height_stability_score(head)
