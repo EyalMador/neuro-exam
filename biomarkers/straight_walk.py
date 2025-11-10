@@ -580,8 +580,8 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
             'stride_symmetry': 0.0,
             'step_timing': 0.0,
             'knee_symmetry': 0.00,
-            'knee_rom': 0.0,
-            'head_stability': 1.00
+            'knee_rom': 1.0,
+            'head_stability': 0.00
         }
     gait_biomarker = gait_score(steps_biomarkers,knee_biomarkers, head, weights)
 
