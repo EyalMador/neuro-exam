@@ -3,6 +3,8 @@ import biomarkers.helper as helper
 import landmarks.name_conventions as lnc
 import matplotlib.pyplot as plt
 from biomarkers.helper import save_biomarkers_json
+from scipy.signal import savgol_filter
+
 
 
 
@@ -344,23 +346,81 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
 def head_height_stability_score(head):
 
     if not head:
-        return 0.0
-    
+            return {
+                'x_smoothness': 0.0,
+                'y_smoothness': 0.0,
+                'xy_path_variance': 0.0,
+                'overall': 0.0
+            }
+        
     frames = sorted(head.keys(), key=lambda x: int(x) if str(x).isdigit() else 0)
-    y_values = np.array([head[f]['y'] for f in frames])
     
-    # Calculate head height variation
+    if len(frames) < 5:
+        return {
+            'x_smoothness': 0.0,
+            'y_smoothness': 0.0,
+            'xy_path_variance': 0.0,
+            'overall': 0.0
+        }
+    
+    x_values = np.array([head_trajectory[f]['x'] for f in frames])
+    y_values = np.array([head_trajectory[f]['y'] for f in frames])
+    
+    # Calculate first derivative (velocity) - smoothness indicator
+    x_velocity = np.diff(x_values)
+    y_velocity = np.diff(y_values)
+    
+    # Calculate second derivative (acceleration) - jerkyness indicator
+    x_acceleration = np.diff(x_velocity)
+    y_acceleration = np.diff(y_velocity)
+    
+    # Smooth the signals for comparison
+    if len(x_values) > 5:
+        x_smooth = savgol_filter(x_values, min(11, len(x_values) if len(x_values) % 2 == 1 else len(x_values) - 1), 3)
+        y_smooth = savgol_filter(y_values, min(11, len(y_values) if len(y_values) % 2 == 1 else len(y_values) - 1), 3)
+    else:
+        x_smooth = x_values
+        y_smooth = y_values
+    
+    # Score 1: X-axis smoothness
+    # Compare actual X movement to smoothed X (smoothed = ideal trajectory)
+    x_error = np.mean(np.abs(x_values - x_smooth))
+    x_range = np.max(x_values) - np.min(x_values)
+    x_smoothness = max(0.0, 1.0 - (x_error / (x_range + 1e-6)))
+    
+    # Score 2: Y-axis smoothness (vertical stability)
+    y_error = np.mean(np.abs(y_values - y_smooth))
     y_range = np.max(y_values) - np.min(y_values)
-    y_std = np.std(y_values)
+    y_smoothness = max(0.0, 1.0 - (y_error / (y_range + 1e-6)))
     
-    # Normalize by average head height (to account for different video scales)
-    avg_y = np.mean(y_values)
-    normalized_variation = y_std / avg_y if avg_y > 0 else 999
+    # Score 3: Path variance (how much the head deviates from expected path)
+    # High acceleration = jerky movement = abnormal
+    x_accel_magnitude = np.mean(np.abs(x_acceleration))
+    y_accel_magnitude = np.mean(np.abs(y_acceleration))
+    total_accel = np.sqrt(x_accel_magnitude**2 + y_accel_magnitude**2)
     
-    # Healthy gait has low variation (typically < 0.05 = 5% of head height)
-    # Abnormal gait has high bobbing (> 0.15 = 15%)
-    score = max(0.0, 1.0 - (normalized_variation / 0.15))
-    return float(score)
+    # Normalize by average velocity
+    x_vel_magnitude = np.mean(np.abs(x_velocity))
+    y_vel_magnitude = np.mean(np.abs(y_velocity))
+    avg_velocity = np.sqrt(x_vel_magnitude**2 + y_vel_magnitude**2)
+    
+    # Jerk ratio: acceleration / velocity (should be low)
+    if avg_velocity > 1e-6:
+        jerk_ratio = total_accel / avg_velocity
+        # Healthy: jerk_ratio < 0.3, Abnormal: jerk_ratio > 1.0
+        path_variance_score = max(0.0, 1.0 - (jerk_ratio / 1.0))
+    else:
+        path_variance_score = 0.0
+    
+    # Overall score: weighted average
+    overall = (x_smoothness * 0.3 + y_smoothness * 0.4 + path_variance_score * 0.3)
+    
+    return {
+        'x_smoothness': float(x_smoothness),
+        'y_smoothness': float(y_smoothness),
+        'path_variance': float(path_variance_score),
+        'overall': float(overall)
+    }
 
 
 def stride_symmetry_score(left_strides_norm, right_strides_norm):
@@ -494,7 +554,7 @@ def gait_score(steps_biomarkers, knee_biomarkers, head, weights=None):
         right_knee['all']
     )
     
-    scores['head_stability'] = head_height_stability_score(head)
+    scores['head_stability'] = head_height_stability_score(head)['overall']
     
     # Calculate weighted overall score
     overall = sum(scores[key] * weights[key] for key in scores)
