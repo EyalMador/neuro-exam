@@ -485,7 +485,7 @@ def gait_score(steps_biomarkers, knee_biomarkers, head, weights=None):
     )
     
     scores['knee_symmetry'] = knee_flexion_symmetry_score(
-        left_knee['all']
+        left_knee['all'],
         right_knee['all']
     )
     
