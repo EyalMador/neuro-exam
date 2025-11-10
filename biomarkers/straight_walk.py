@@ -363,8 +363,8 @@ def head_height_stability_score(head):
             'overall': 0.0
         }
     
-    x_values = np.array([head_trajectory[f]['x'] for f in frames])
-    y_values = np.array([head_trajectory[f]['y'] for f in frames])
+    x_values = np.array([head[f]['x'] for f in frames])
+    y_values = np.array([head[f]['y'] for f in frames])
     
     # Calculate first derivative (velocity) - smoothness indicator
     x_velocity = np.diff(x_values)
