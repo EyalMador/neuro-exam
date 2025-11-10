@@ -428,7 +428,7 @@ def knee_range_of_motion_score(left_knee_angles, right_knee_angles):
     
     for angles_dict in [left_knee_angles, right_knee_angles]:
         if angles_dict:
-            values = np.array(list(angles_dict.values()))
+            values = np.array(list(angles_dict))
             if len(values) > 0:
                 rom = np.max(values) - np.min(values)
                 roms.append(rom)
