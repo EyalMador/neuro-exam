@@ -102,7 +102,7 @@ def stride_lengths(heel, toe, steps, foot):
     
     for i in range(len(foot_steps) - 1):
         frame1 = str(foot_steps[i][0])
-        frame2 = str(foot_steps[i][1])
+        frame2 = str(foot_steps[i+1][0])
         
         if frame1 in heel and frame2 in heel and frame1 in toe and frame2 in toe:
             heel1 = heel[frame1]
@@ -476,7 +476,7 @@ def gait_score(steps_biomarkers, knee_biomarkers, head, weights=None):
     )
     
     scores['stride_symmetry'] = stride_symmetry_score(
-        [s for s in step_size_data['all']]
+        [s for s in step_size_data['all']],
         [s for s in step_size_data['all']]
     )
     
