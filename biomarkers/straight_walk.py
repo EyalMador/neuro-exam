@@ -515,7 +515,7 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
     knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
 
-        weights = {
+    weights = {
             'stride_regularity': 0.15,
             'stride_symmetry': 0.25,
             'step_timing': 0.0,
@@ -523,7 +523,7 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
             'knee_rom': 0.20,
             'head_stability': 0.25
         }
-    gait_biomarker = gait_score(steps_biomarkers,knee_biomarkers, head)
+    gait_biomarker = gait_score(steps_biomarkers,knee_biomarkers, head, weights)
 
     biomarkers["gait"] = gait_biomarker['overall']
     # Step size biomarkers (now normalized by foot size)
