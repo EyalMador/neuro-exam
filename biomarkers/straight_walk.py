@@ -267,7 +267,7 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     
     # Plot knee angles
-    plot_knee_angles(knee_angles)
+    #plot_knee_angles(knee_angles)
     
     # Filter out unrealistic angles (< 90° or > 180° indicate errors/abnormality)
     for side in ['left', 'right', 'all']:
@@ -565,6 +565,65 @@ def gait_score(steps_biomarkers, knee_biomarkers, head, weights=None):
         'classification': 1 if overall > 0.6 else 0
     }
 
+def debug_stride_calculation(left_heel, left_toe, right_heel, right_toe, fps=30):
+    """
+    Debug version that prints what's happening at each step.
+    Run this instead of step_statistics to see where the issue is.
+    """
+    
+    # Step 1: Detect steps
+    steps = detect_steps(left_heel, left_toe, right_heel, right_toe)
+    print(f"\n=== DETECTED STEPS ===")
+    print(f"Left steps: {steps['left']}")
+    print(f"Right steps: {steps['right']}")
+    print(f"Number of left steps: {len(steps['left'])}")
+    print(f"Number of right steps: {len(steps['right'])}")
+    
+    # Step 2: Calculate stride lengths
+    print(f"\n=== STRIDE CALCULATION ===")
+    
+    for foot in ['left', 'right']:
+        print(f"\n--- {foot.upper()} FOOT ---")
+        foot_steps = steps[foot]
+        print(f"Step pairs found: {len(foot_steps)}")
+        
+        if len(foot_steps) >= 2:
+            for i in range(min(3, len(foot_steps) - 1)):  # Print first 3
+                frame1_start = str(foot_steps[i][0])
+                frame1_end = str(foot_steps[i][1])
+                frame2_start = str(foot_steps[i + 1][0])
+                frame2_end = str(foot_steps[i + 1][1])
+                
+                print(f"\n  Step {i} -> Step {i+1}:")
+                print(f"    Step {i}: frames {foot_steps[i][0]}-{foot_steps[i][1]} (start-end)")
+                print(f"    Step {i+1}: frames {foot_steps[i+1][0]}-{foot_steps[i+1][1]} (start-end)")
+                
+                # Check if frames exist in heel data
+                heel = left_heel if foot == 'left' else right_heel
+                toe = left_toe if foot == 'left' else right_toe
+                
+                print(f"    Available heel frames: {sorted([int(f) for f in heel.keys() if str(f).isdigit()])[:10]}...")
+                
+                if frame1_start in heel:
+                    heel1 = heel[frame1_start]
+                    print(f"    Frame {frame1_start} heel X: {heel1['x']:.2f}")
+                else:
+                    print(f"    Frame {frame1_start} NOT in heel data!")
+                
+                if frame2_start in heel:
+                    heel2 = heel[frame2_start]
+                    print(f"    Frame {frame2_start} heel X: {heel2['x']:.2f}")
+                    
+                    if frame1_start in heel:
+                        stride = abs(heel2['x'] - heel1['x'])
+                        print(f"    Stride length: {stride:.2f} pixels")
+                else:
+                    print(f"    Frame {frame2_start} NOT in heel data!")
+        else:
+            print(f"  Not enough steps detected to calculate strides")
+    
+    return steps
+
 
 def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     rtm_names_landmarks = helper.indices_to_names(landmarks, lnc.rtm_mapping())
@@ -572,6 +631,7 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     
 
     biomarkers = {}
+    steps = debug_stride_calculation(left_heel, left_toe, right_heel, right_toe, fps)
     steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
     knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
 
