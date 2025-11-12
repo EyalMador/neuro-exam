@@ -23,13 +23,13 @@ def biomarkers_to_json_format(biomarkers, result="normal"):
         # Keep dicts with mean/std only
         if isinstance(category_data, dict) and ('mean' in category_data or 'std' in category_data):
             formatted["biomarkers"][category_name] = {
-                "mean": round(category_data.get("mean", 0), 2),
-                "std": round(category_data.get("std", 0), 2)
+                "mean": float(category_data.get("mean", 0)),
+                "std": float(category_data.get("std", 0))
             }
             biomarker_counter += 1
         # Keep single numeric values
         elif isinstance(category_data, (int, float)):
-            formatted["biomarkers"][category_name] = round(category_data, 2)
+            formatted["biomarkers"][category_name] = category_data
             biomarker_counter += 1
         # ignore everything else
 
