@@ -2,6 +2,8 @@ import numpy as np
 from scipy.signal import savgol_filter, find_peaks
 import biomarkers.helper as helper
 import landmarks.name_conventions as lnc
+from biomarkers.helper import save_biomarkers_json
+
 
 def stride_length(heel):
 
@@ -111,4 +113,6 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers['left_regularity'] = stride_stat["left_regularity"]
     biomarkers['right_regularity'] = stride_stat["right_regularity"]
     print(f"symetry: {biomarkers['stride_symetry']}, left stride: {biomarkers['left_regularity']}, right stride:{biomarkers['right_regularity']}")
+    
+    save_biomarkers_json(biomarkers, output_dir, filename)
     return biomarkers
