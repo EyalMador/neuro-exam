@@ -355,12 +355,12 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
                                             prominence=0.03,
                                             width_rel=0.5,
                                             smooth_win=5,
-                                            merge_gap=10)
+                                            merge_gap=6)
     right_events = detect_finger_to_nose_events(filtered_right,
                                                 prominence=0.03,
                                                 width_rel=0.5,
                                                 smooth_win=5,
-                                                merge_gap=10)
+                                                merge_gap=6)
 
     print(f"right len: {len(right_events)}, right:{right_events}")
     print(f"left len: {len(left_events)}, left:{left_events}")
@@ -400,31 +400,6 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     save_biomarkers_json(res, output_dir, filename)
     return res
 
-{'left_mean_dist': 4.261971104976297,
- 'right_mean_dist': 4.135953403493325,
- 'symmetry': 0.029567938960410444,
- 'left_tremor': 0.42871018649203324,
- 'right_tremor': 0.5685812228912934,
- 'left_tremor_amplitude': 0.00981374195723809,
- 'right_tremor_amplitude': 0.010429827510584088,
- 'left_tremor_freq': 4.921875,
- 'right_tremor_freq': 4.6875,
- 'tremor_symmetry': 0.12262871042179307,
- 'left_smoothness': 0.007925058110166916,
- 'right_smoothness': 0.009926705947479901}
-
-{'left_mean_dist': 4.212402671083293,
- 'right_mean_dist': 3.9863970235251744,
- 'symmetry': 0.053652431926693556,
- 'left_tremor': 0.2941501567221052,
- 'right_tremor': 0.4796487300990298,
- 'left_tremor_amplitude': 0.013149971078459785,
- 'right_tremor_amplitude': 0.004459227310659577,
- 'left_tremor_freq': 4.453125,
- 'right_tremor_freq': 4.453125,
- 'tremor_symmetry': 0.21235421487026734,
- 'left_smoothness': 0.008611397197842789,
- 'right_smoothness': 0.0048059764406829545}
 
 
 
