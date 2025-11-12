@@ -123,27 +123,6 @@ def compute_tremor(tip_coords, fps, tremor_band=(4, 12), high_pass_cutoff=3.0):
     return float(tremor_ratio), float(tremor_amplitude), float(peak_tremor_freq)
 
 
-def compute_smoothness(tip_coords):
-    """
-    Measure motion smoothness using jerk (rate of change of acceleration).
-    Higher jerk = less smooth = more abnormal
-    """
-    frames = sorted(tip_coords.keys(), key=int)
-    if len(frames) < 10:
-        return np.nan
-    
-    positions = np.array([[tip_coords[f]['x'], tip_coords[f]['y']] for f in frames])
-    
-
-    vel = np.diff(positions, axis=0)
-    
-    acc = np.diff(vel, axis=0)
-    
-    jerk = np.diff(acc, axis=0)
-    jerk_magnitude = np.linalg.norm(jerk, axis=1)
-    
-    return float(np.mean(jerk_magnitude))
-
 
 
 def detect_finger_to_nose_events(dist_dict,
@@ -211,6 +190,16 @@ def detect_finger_to_nose_events(dist_dict,
         result[i] = [int(f) for f in frames[start:end + 1]]
 
     return result
+
+
+
+def per_event_minima(events, dist_dict):
+    minima = []
+    for frames in events.values():
+        vals = [dist_dict[f] for f in frames if f in dist_dict]
+        if vals:
+            minima.append(min(vals))
+    return minima
 
 
 import matplotlib.pyplot as plt
@@ -286,7 +275,10 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
 
     # Mean distance per hand
     left_score = event_mean_distance(left_events, left_dist)
+    left_min_mean = np.mean(per_event_minima(left_events, left_dist)) 
     right_score = event_mean_distance(right_events, right_dist)
+    right_min_mean = np.mean(per_event_minima(right_events, right_dist)) 
+
 
     # Symmetry (0 = perfect, 1 = asymmetrical)
     symmetry = abs(left_score - right_score) / max(left_score, right_score) if (left_score and right_score) else np.nan
@@ -297,22 +289,20 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
 
     tremor_symmetry = tremor_asymmetry_orders(left_tremor, right_tremor)
     
-    left_smoothness = compute_smoothness(left_tip)
-    right_smoothness = compute_smoothness(right_tip)
 
     return {
-            "left_mean_dist": left_score,
-            "right_mean_dist": right_score,
+            #"left_mean_dist": left_score,
+            #"right_mean_dist": right_score,
+            "left_min_mean": left_min_mean,
+            "right_min_mean": right_min_mean,
             "symmetry": symmetry,
-            "left_tremor": left_tremor,
-            "right_tremor": right_tremor,
+            #"left_tremor": left_tremor,
+            #"right_tremor": right_tremor,
             "left_tremor_amplitude": left_tremor_amp,
             "right_tremor_amplitude": right_tremor_amp,
-            "left_tremor_freq": left_tremor_freq,
-            "right_tremor_freq": right_tremor_freq,
-            "tremor_symmetry": tremor_symmetry,
-            "left_smoothness": left_smoothness,
-            "right_smoothness": right_smoothness,
+            #"left_tremor_freq": left_tremor_freq,
+            #"right_tremor_freq": right_tremor_freq,
+            "tremor_symmetry": tremor_symmetry
         }
 
 
@@ -409,5 +399,32 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     print(res)
     save_biomarkers_json(res, output_dir, filename)
     return res
+
+{'left_mean_dist': 4.261971104976297,
+ 'right_mean_dist': 4.135953403493325,
+ 'symmetry': 0.029567938960410444,
+ 'left_tremor': 0.42871018649203324,
+ 'right_tremor': 0.5685812228912934,
+ 'left_tremor_amplitude': 0.00981374195723809,
+ 'right_tremor_amplitude': 0.010429827510584088,
+ 'left_tremor_freq': 4.921875,
+ 'right_tremor_freq': 4.6875,
+ 'tremor_symmetry': 0.12262871042179307,
+ 'left_smoothness': 0.007925058110166916,
+ 'right_smoothness': 0.009926705947479901}
+
+{'left_mean_dist': 4.212402671083293,
+ 'right_mean_dist': 3.9863970235251744,
+ 'symmetry': 0.053652431926693556,
+ 'left_tremor': 0.2941501567221052,
+ 'right_tremor': 0.4796487300990298,
+ 'left_tremor_amplitude': 0.013149971078459785,
+ 'right_tremor_amplitude': 0.004459227310659577,
+ 'left_tremor_freq': 4.453125,
+ 'right_tremor_freq': 4.453125,
+ 'tremor_symmetry': 0.21235421487026734,
+ 'left_smoothness': 0.008611397197842789,
+ 'right_smoothness': 0.0048059764406829545}
+
 
 
