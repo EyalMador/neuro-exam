@@ -95,38 +95,50 @@ def detect_steps(left_heel, left_toe, right_heel, right_toe):
 
 
 def stride_lengths(heel, toe, steps, foot):
+
     stride_lengths_raw = []
     stride_lengths_normalized = []
     
     foot_steps = steps[foot]
     if len(foot_steps) < 2:
-        return stride_lengths_raw, stride_lengths_normalized
+        return [], []
     
+    # Calculate all strides first
     for i in range(len(foot_steps) - 1):
-        frame1 = str(foot_steps[i][0])
-        frame2 = str(foot_steps[i+1][0])
+        frame1_start = str(foot_steps[i][0])
+        frame2_start = str(foot_steps[i + 1][0])
         
-        if frame1 in heel and frame2 in heel and frame1 in toe and frame2 in toe:
-            heel1 = heel[frame1]
-            heel2 = heel[frame2]
-            toe1 = toe[frame1]
-            toe2 = toe[frame2]
+        if frame1_start in heel and frame2_start in heel:
+            heel1 = heel[frame1_start]
+            heel2 = heel[frame2_start]
             
-            # Raw stride length (horizontal distance)
             h1 = np.array([heel1['x'], 0, 0])
             h2 = np.array([heel2['x'], 0, 0])
             stride_length_raw = np.linalg.norm(h2 - h1)
             stride_lengths_raw.append(stride_length_raw)
             
-            # Foot size for normalization (average of both frames)
-            foot_size_frame1 = foot_size_pixels(heel1, toe1)
-            foot_size_frame2 = foot_size_pixels(heel2, toe2)
-            avg_foot_size = (foot_size_frame1 + foot_size_frame2) / 2
-            
-            stride_length_normalized = stride_length_raw / avg_foot_size if avg_foot_size > 0 else 0
-            stride_lengths_normalized.append(stride_length_normalized)
+            if frame1_start in toe and frame2_start in toe:
+                toe1 = toe[frame1_start]
+                toe2 = toe[frame2_start]
+                
+                foot_size_frame1 = foot_size_pixels(heel1, toe1)
+                foot_size_frame2 = foot_size_pixels(heel2, toe2)
+                avg_foot_size = (foot_size_frame1 + foot_size_frame2) / 2
+                
+                stride_length_normalized = stride_length_raw / avg_foot_size if avg_foot_size > 0 else 0
+                stride_lengths_normalized.append(stride_length_normalized)
     
-    return stride_lengths_raw, stride_lengths_normalized
+    # Filter outliers
+    filtered_raw, stats = filter_realistic_strides(stride_lengths_raw)
+    
+    # Filter normalized to match
+    if filtered_raw and stride_lengths_raw:
+        mask = [s in filtered_raw for s in stride_lengths_raw]
+        filtered_normalized = [n for n, keep in zip(stride_lengths_normalized, mask) if keep]
+    else:
+        filtered_normalized = []
+    
+    return filtered_raw, filtered_normalized
 
 
 def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
@@ -509,6 +521,35 @@ def knee_range_of_motion_score(left_knee_angles, right_knee_angles):
     
     return float(max(0.0, min(1.0, score)))
 
+def filter_realistic_strides(strides_raw):
+
+    if not strides_raw:
+        return [], {'min': 0, 'max': 0, 'removed': 0}
+    
+    strides_array = np.array(strides_raw)
+    
+    # Use IQR method to identify outliers
+    q1 = np.percentile(strides_array, 25)
+    q3 = np.percentile(strides_array, 75)
+    iqr = q3 - q1
+    
+    # Define bounds with safety margins
+    lower_bound = max(20, q1 - 1.5 * iqr)  # Min 20 pixels
+    upper_bound = min(600, q3 + 1.5 * iqr)  # Max 600 pixels
+    
+    # Filter
+    filtered = [s for s in strides_raw if lower_bound <= s <= upper_bound]
+    
+    return filtered, {
+        'original_count': len(strides_raw),
+        'filtered_count': len(filtered),
+        'removed': len(strides_raw) - len(filtered),
+        'lower_bound': lower_bound,
+        'upper_bound': upper_bound,
+        'original_mean': float(np.mean(strides_array)),
+        'filtered_mean': float(np.mean(filtered)) if filtered else 0
+    }
+
 
 def gait_score(steps_biomarkers, knee_biomarkers, head, weights=None):
 
@@ -636,12 +677,12 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
 
     weights = {
-            'stride_regularity': 0.0,
-            'stride_symmetry': 0.0,
-            'step_timing': 0.0,
-            'knee_symmetry': 0.35,
-            'knee_rom': 0.35,
-            'head_stability': 0.30
+            'stride_regularity': 0.4,
+            'stride_symmetry': 0.4,
+            'step_timing': 0.2,
+            'knee_symmetry': 0.0,
+            'knee_rom': 0.0,
+            'head_stability': 0.00
         }
     gait_biomarker = gait_score(steps_biomarkers,knee_biomarkers, head, weights)
 
