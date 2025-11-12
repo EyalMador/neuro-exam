@@ -34,7 +34,7 @@ def biomarkers_to_json_format(biomarkers, result="normal"):
         "biomarkers": {},
         "result": result
     }
-    
+
     biomarker_counter = 1
     
     for category_name, category_data in biomarkers.items():
