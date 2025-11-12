@@ -282,6 +282,7 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
 
     # Symmetry (0 = perfect, 1 = asymmetrical)
     symmetry = abs(left_score - right_score) / max(left_score, right_score) if (left_score and right_score) else np.nan
+    symmetry_min_mean = abs(left_min_mean - right_min_mean) / max(left_min_mean, right_min_mean) if (left_score and right_score) else np.nan
 
     # Tremor (per-hand)
     left_tremor, left_tremor_amp, left_tremor_freq = compute_tremor(left_tip, fps)
@@ -296,12 +297,13 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
             "left_min_mean": left_min_mean,
             "right_min_mean": right_min_mean,
             "symmetry": symmetry,
+            "symmetry_min_mean": symmetry_min_mean,
             #"left_tremor": left_tremor,
             #"right_tremor": right_tremor,
-            #"left_tremor_amplitude": left_tremor_amp,
-            #"right_tremor_amplitude": right_tremor_amp,
-            "left_tremor_freq": left_tremor_freq,
-            "right_tremor_freq": right_tremor_freq,
+            "left_tremor_amplitude": left_tremor_amp,
+            "right_tremor_amplitude": right_tremor_amp,
+            #"left_tremor_freq": left_tremor_freq,
+            #"right_tremor_freq": right_tremor_freq,
             "tremor_symmetry": tremor_symmetry
         }
 
