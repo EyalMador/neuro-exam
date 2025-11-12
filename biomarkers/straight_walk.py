@@ -3,6 +3,7 @@ from scipy.signal import savgol_filter, find_peaks
 import biomarkers.helper as helper
 import landmarks.name_conventions as lnc
 from biomarkers.helper import save_biomarkers_json
+import matplotlib.pyplot as plt
 
 
 def stride_length(heel):
@@ -104,6 +105,106 @@ def find_heel_strikes(y_smoothed, prominence=10, distance=5):
     return peaks
 
 
+
+def plot_heel_strikes(left_result, right_result, title="Gait Analysis"):
+    """Plot heel positions and detected heel strikes."""
+    
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # LEFT HEEL - Raw data with smoothed overlay
+    ax = axes[0, 0]
+    if left_result:
+        strides, y_smooth, indices, frames, x_pos, y_pos = left_result
+        frames_arr = np.array(frames)
+        
+        ax.plot(frames_arr, y_pos, 'o-', alpha=0.3, label='Raw Y (noisy)', markersize=3)
+        ax.plot(frames_arr, y_smooth, 'b-', linewidth=2, label='Smoothed Y')
+        ax.plot(frames_arr[indices], y_smooth[indices], 'r*', markersize=15, label='Heel strikes')
+        
+        ax.set_xlabel('Frame')
+        ax.set_ylabel('Y Position (height)')
+        ax.set_title(f'LEFT HEEL - Found {len(strides)} strides')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+    
+    # RIGHT HEEL - Raw data with smoothed overlay
+    ax = axes[0, 1]
+    if right_result:
+        strides, y_smooth, indices, frames, x_pos, y_pos = right_result
+        frames_arr = np.array(frames)
+        
+        ax.plot(frames_arr, y_pos, 'o-', alpha=0.3, label='Raw Y (noisy)', markersize=3)
+        ax.plot(frames_arr, y_smooth, 'g-', linewidth=2, label='Smoothed Y')
+        ax.plot(frames_arr[indices], y_smooth[indices], 'r*', markersize=15, label='Heel strikes')
+        
+        ax.set_xlabel('Frame')
+        ax.set_ylabel('Y Position (height)')
+        ax.set_title(f'RIGHT HEEL - Found {len(strides)} strides')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+    
+    # STRIDES comparison
+    ax = axes[1, 0]
+    if left_result and right_result:
+        left_strides = left_result[0]
+        right_strides = right_result[0]
+        
+        x_pos_plot = np.arange(max(len(left_strides), len(right_strides)))
+        
+        if left_strides:
+            ax.plot(range(len(left_strides)), left_strides, 'bo-', label='Left strides', linewidth=2, markersize=8)
+        if right_strides:
+            ax.plot(range(len(right_strides)), right_strides, 'go-', label='Right strides', linewidth=2, markersize=8)
+        
+        ax.set_xlabel('Stride Number')
+        ax.set_ylabel('Stride Length (pixels)')
+        ax.set_title('Stride Lengths Over Time')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+    
+    # BIOMARKERS summary
+    ax = axes[1, 1]
+    ax.axis('off')
+    
+    if left_result and right_result:
+        left_strides = left_result[0]
+        right_strides = right_result[0]
+        
+        left_reg = stride_regularity(left_strides)
+        right_reg = stride_regularity(right_strides)
+        symmetry = stride_symmetry(left_strides, right_strides)
+        
+        text = f"""
+BIOMARKERS:
+
+LEFT STRIDE:
+  Count: {len(left_strides)}
+  Mean: {np.mean(left_strides):.1f} px
+  Std: {np.std(left_strides):.1f} px
+  Regularity: {left_reg:.3f}
+
+RIGHT STRIDE:
+  Count: {len(right_strides)}
+  Mean: {np.mean(right_strides):.1f} px
+  Std: {np.std(right_strides):.1f} px
+  Regularity: {right_reg:.3f}
+
+SYMMETRY:
+  Score: {symmetry:.3f}
+  (1.0 = perfect, 0.0 = asymmetric)
+        """
+        
+        ax.text(0.1, 0.5, text, fontsize=11, family='monospace',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8),
+                verticalalignment='center')
+    
+    plt.suptitle(title, fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    plt.show()
+
+
+
+
 def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     rtm_names_landmarks = helper.indices_to_names(landmarks, lnc.rtm_mapping())
     [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle, head] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle", "Head"])
@@ -113,6 +214,6 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers['left_regularity'] = stride_stat["left_regularity"]
     biomarkers['right_regularity'] = stride_stat["right_regularity"]
     print(f"symetry: {biomarkers['stride_symetry']}, left stride: {biomarkers['left_regularity']}, right stride:{biomarkers['right_regularity']}")
-    
+    plot_heel_strikes(biomarkers['left_regularity'], biomarkers['right_regularity'])
     save_biomarkers_json(biomarkers, output_dir, filename)
     return biomarkers
