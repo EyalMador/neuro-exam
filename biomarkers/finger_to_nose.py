@@ -291,17 +291,17 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
     
 
     return {
-            "left_mean_dist": left_score,
-            "right_mean_dist": right_score,
+            #"left_mean_dist": left_score,
+            #"right_mean_dist": right_score,
             "left_min_mean": left_min_mean,
             "right_min_mean": right_min_mean,
             "symmetry": symmetry,
             "left_tremor": left_tremor,
-            "right_tremor": right_tremor,
-            "left_tremor_amplitude": left_tremor_amp,
+            #"right_tremor": right_tremor,
+            #"left_tremor_amplitude": left_tremor_amp,
             "right_tremor_amplitude": right_tremor_amp,
-            "left_tremor_freq": left_tremor_freq,
-            "right_tremor_freq": right_tremor_freq,
+            #"left_tremor_freq": left_tremor_freq,
+            #"right_tremor_freq": right_tremor_freq,
             "tremor_symmetry": tremor_symmetry
         }
 
