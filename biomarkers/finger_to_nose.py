@@ -1,11 +1,28 @@
 import numpy as np
-from scipy.signal import detrend, welch
+from scipy.signal import detrend, welch, butter, filtfilt
 import numpy as np
 from scipy.signal import find_peaks, peak_widths
 from biomarkers.helper import save_biomarkers_json
 
 
 # ---------------helpers--------------------
+def get_shoulder_width(left_shoulder, right_shoulder):
+    """Calculate median shoulder width for normalization"""
+    frames = sorted(set(left_shoulder.keys()) & set(right_shoulder.keys()))
+    widths = []
+    for f in frames:
+        if f in left_shoulder and f in right_shoulder:
+            ls = np.array([left_shoulder[f]["x"], left_shoulder[f]["y"]])
+            rs = np.array([right_shoulder[f]["x"], right_shoulder[f]["y"]])
+            widths.append(np.linalg.norm(ls - rs))
+    return np.median(widths) if widths else 1.0
+
+
+def normalize_distances(dist_dict, reference_length):
+    """Normalize distances by reference length"""
+    return {f: d / reference_length for f, d in dist_dict.items()}
+
+
 
 def calculate_distance_dict(finger_coords, nose_coords):
 
@@ -66,27 +83,66 @@ def tremor_asymmetry_orders(left_tremor, right_tremor, eps=1e-12):
     R = float(right_tremor) + eps
     return abs(np.log10(L / R))
 
-def compute_tremor(tip_coords, fps, tremor_band=(4, 12)):
+def compute_tremor(tip_coords, fps, tremor_band=(4, 12), high_pass_cutoff=3.0):
+    """
+    Compute tremor on the ENTIRE motion sequence.
+    Returns: tremor_ratio, tremor_amplitude, peak_frequency
+    """
     frames = sorted(tip_coords.keys(), key=int)
     if len(frames) < fps:
-        return np.nan
+        return np.nan, np.nan, np.nan
 
     x = np.array([tip_coords[f]['x'] for f in frames])
     y = np.array([tip_coords[f]['y'] for f in frames])
 
     vx = np.diff(x)
     vy = np.diff(y)
-    vel = np.sqrt(vx**2 + vy**2)
-    vel = detrend(vel)
+    speed = np.sqrt(vx**2 + vy**2)
 
-    freqs, psd = welch(vel, fs=fps, nperseg=min(256, len(vel)))
+    # High-pass filter to remove main movement and isolate tremor
+    if len(speed) > 20:
+        nyquist = fps / 2
+        cutoff_norm = high_pass_cutoff / nyquist
+        b, a = butter(2, cutoff_norm, btype='high')
+        speed_filtered = filtfilt(b, a, speed)
+    else:
+        speed_filtered = detrend(speed)
+
+    freqs, psd = welch(speed_filtered, fs=fps, nperseg=min(256, len(speed_filtered)))
 
     mask = (freqs >= tremor_band[0]) & (freqs <= tremor_band[1])
     tremor_power = np.trapz(psd[mask], freqs[mask])
-    total_power = np.trapz(psd, freqs)
+    
+    total_mask = (freqs >= 0.5) & (freqs <= 20)
+    total_power = np.trapz(psd[total_mask], freqs[total_mask])
 
     tremor_ratio = tremor_power / total_power if total_power > 0 else 0
-    return float(tremor_ratio)
+    tremor_amplitude = np.std(speed_filtered)
+    peak_tremor_freq = freqs[mask][np.argmax(psd[mask])] if tremor_power > 0 else np.nan
+    
+    return float(tremor_ratio), float(tremor_amplitude), float(peak_tremor_freq)
+
+
+def compute_smoothness(tip_coords):
+    """
+    Measure motion smoothness using jerk (rate of change of acceleration).
+    Higher jerk = less smooth = more abnormal
+    """
+    frames = sorted(tip_coords.keys(), key=int)
+    if len(frames) < 10:
+        return np.nan
+    
+    positions = np.array([[tip_coords[f]['x'], tip_coords[f]['y']] for f in frames])
+    
+
+    vel = np.diff(positions, axis=0)
+    
+    acc = np.diff(vel, axis=0)
+    
+    jerk = np.diff(acc, axis=0)
+    jerk_magnitude = np.linalg.norm(jerk, axis=1)
+    
+    return float(np.mean(jerk_magnitude))
 
 
 
@@ -215,6 +271,7 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
     2. Left-right symmetry
     3. Tremor per hand
     4. Tremor symmetry
+    5. smoothness per hand
     """
 
     def event_mean_distance(events, dist_dict):
@@ -235,19 +292,28 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
     symmetry = abs(left_score - right_score) / max(left_score, right_score) if (left_score and right_score) else np.nan
 
     # Tremor (per-hand)
-    left_tremor = compute_tremor(left_tip, fps)
-    right_tremor = compute_tremor(right_tip, fps)
+    left_tremor, left_tremor_amp, left_tremor_freq = compute_tremor(left_tip, fps)
+    right_tremor, right_tremor_amp, right_tremor_freq = compute_tremor(right_tip, fps)
 
     tremor_symmetry = tremor_asymmetry_orders(left_tremor, right_tremor)
+    
+    left_smoothness = compute_smoothness(left_tip)
+    right_smoothness = compute_smoothness(right_tip)
 
     return {
-        "left_mean_dist": left_score,
-        "right_mean_dist": right_score,
-        "symmetry": symmetry,
-        "left_tremor": left_tremor,
-        "right_tremor": right_tremor,
-        "tremor_symmetry": tremor_symmetry
-    }
+            "left_mean_dist": left_score,
+            "right_mean_dist": right_score,
+            "symmetry": symmetry,
+            "left_tremor": left_tremor,
+            "right_tremor": right_tremor,
+            "left_tremor_amplitude": left_tremor_amp,
+            "right_tremor_amplitude": right_tremor_amp,
+            "left_tremor_freq": left_tremor_freq,
+            "right_tremor_freq": right_tremor_freq,
+            "tremor_symmetry": tremor_symmetry,
+            "left_smoothness": left_smoothness,
+            "right_smoothness": right_smoothness,
+        }
 
 
 
@@ -279,10 +345,14 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     nose = pose["NOSE"]
     left_finger = hands["LEFT_HAND.INDEX_FINGER_TIP"]
     right_finger = hands["RIGHT_HAND.INDEX_FINGER_TIP"]
+    
+    shoulder_width = get_shoulder_width(left_shoulder, right_shoulder)
 
-
-    left_dist = calculate_distance_dict(left_finger, nose)
-    right_dist = calculate_distance_dict(right_finger, nose)
+    left_dist_raw = calculate_distance_dict(left_finger, nose)
+    right_dist_raw = calculate_distance_dict(right_finger, nose)
+    
+    left_dist = normalize_distances(left_dist_raw, shoulder_width)
+    right_dist = normalize_distances(right_dist_raw, shoulder_width)
     
 
     left_angle = calculate_angle_dict(left_shoulder, left_elbow, left_wrist)
@@ -329,7 +399,6 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     
     plot_finger_to_nose_distances(filtered_left, filtered_right, left_events, right_events)
 
-    #Compute biomarkers
     res = compute_finger_to_nose_biomarkers(
         left_events, right_events,
         left_dist, right_dist,
