@@ -302,7 +302,7 @@ def foot_distances(left_toe, right_toe):
         ltoe = np.array([left_toe['x'], left_toe['y']])
         rtoe = np.array([right_toe['x'], right_toe['y']])
         distances[frame] = abs(np.linalg.norm(ltoe - rtoe))
-    plot_foot_distances(distances)
+    #plot_foot_distances(distances)
     return distances
 
 
@@ -352,12 +352,35 @@ def calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, rig
     
     return knee_angles
 
+def max_knee_angles_cc(knee_angles):
+    left = np.array([v for _, v in sorted(knee_angles["left"].items())])
+    right = np.array([v for _, v in sorted(knee_angles["right"].items())])
+
+    n = min(len(left), len(right))
+    left, right = left[:n], right[:n]
+
+    #subtract mean to center the signals
+    left = left - np.mean(left)
+    right = right - np.mean(right)
+
+    cc_full = np.correlate(left, right, mode='full')
+    cc_full = cc_full / (np.std(left) * np.std(right) * n) #normalize cc
+
+    # Find maximum correlation and corresponding lag
+    max_idx = np.argmax(cc_full)
+    lags = np.arange(-n + 1, n)
+    best_lag = lags[max_idx]
+    max_cc = cc_full[max_idx]
+
+    return max_cc, best_lag
+
+
 def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle):
 
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     
     # Plot knee angles
-    plot_knee_angles(knee_angles)
+    #plot_knee_angles(knee_angles)
     
     # Filter out unrealistic angles (< 90° or > 180° indicate errors/abnormality)
     for side in ['left', 'right', 'all']:
@@ -505,7 +528,10 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     biomarkers = {}
     steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
     knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
-    plot_toe_trajectories(left_toe, right_toe)
+    knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
+    max_cc = max_knee_angles_cc(knee_angles)
+    biomarkers["max_cc"] = max_cc
+    #plot_toe_trajectories(left_toe, right_toe)
 
 
     # Step size biomarkers (now normalized by foot size)
