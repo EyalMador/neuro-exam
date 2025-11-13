@@ -455,9 +455,11 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
     return statistics
 
 def horizontal_foot_place_max_cc(left_toe, right_toe):
+    left_x = {frame: left_toe['x'] for frame in left_toe.keys()}
+    right_x = {frame: right_toe['x'] for frame in right_toe.keys()}
     toes = {
-        'left': left_toe,
-        'right': right_toe
+        'left': left_x,
+        'right': right_x
     }
     cc, lag = max_cc(toes)
     return cc
