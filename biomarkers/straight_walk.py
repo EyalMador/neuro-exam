@@ -459,7 +459,8 @@ def horizontal_foot_place_max_cc(left_toe, right_toe):
         'left': left_toe,
         'right': right_toe
     }
-    return max_cc(toes)
+    cc, lag = max_cc(toes)
+    return cc
 
 
 def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
