@@ -19,12 +19,10 @@ def foot_size_pixels(heel, toe):
 
 def detect_steps(left_toe, right_toe, smooth_window, polyorder):
     distances = foot_distances(left_toe, right_toe)
-    print("222")
 
-    smoothed_distances = savgol_filter(distances, smooth_window, polyorder)
-    print("444")
+    distance_values = np.array(list(distances.values()))
+    smoothed_distances = savgol_filter(distance_values, smooth_window, polyorder)
     peaks, _ = find_peaks(smoothed_distances, distance=10)
-    print("333")
     minimums, _ = find_peaks(-smoothed_distances, distance=10)
     return peaks, minimums, smoothed_distances
 
@@ -138,8 +136,8 @@ def foot_distances(left_toe, right_toe):
     distances = {}
     frames = range(len(left_toe))
     for frame in frames:
-        ltoe = np.array([left_toe['x'], left_toe['y']])
-        rtoe = np.array([right_toe['x'], right_toe['y']])
+        ltoe = np.array([left_toe[frame]['x'], left_toe[frame]['y']])
+        rtoe = np.array([right_toe[frame]['x'], right_toe[frame]['y']])
         distances[frame] = abs(np.linalg.norm(ltoe - rtoe))
     return distances
 
