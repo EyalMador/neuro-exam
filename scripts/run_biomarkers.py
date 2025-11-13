@@ -34,7 +34,7 @@ def biomarkers_to_json_format(biomarkers, result="normal"):
         "biomarkers": {},
         "result": result
     }
-    
+
     biomarker_counter = 1
     
     for category_name, category_data in biomarkers.items():
@@ -53,8 +53,8 @@ def biomarkers_to_json_format(biomarkers, result="normal"):
                 biomarker_name = f"b{biomarker_counter}"
                 formatted["biomarkers"][biomarker_name] = {
                     "name": f"{category_name}_{key}",
-                    "mean": round(value.get('mean', 0), 2),
-                    "std": round(value.get('std', 0), 2)
+                    "mean": float(value.get('mean', 0)),
+                    "std": float(value.get('std', 0))
                 }
                 biomarker_counter += 1
     

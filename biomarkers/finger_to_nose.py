@@ -123,27 +123,6 @@ def compute_tremor(tip_coords, fps, tremor_band=(4, 12), high_pass_cutoff=3.0):
     return float(tremor_ratio), float(tremor_amplitude), float(peak_tremor_freq)
 
 
-def compute_smoothness(tip_coords):
-    """
-    Measure motion smoothness using jerk (rate of change of acceleration).
-    Higher jerk = less smooth = more abnormal
-    """
-    frames = sorted(tip_coords.keys(), key=int)
-    if len(frames) < 10:
-        return np.nan
-    
-    positions = np.array([[tip_coords[f]['x'], tip_coords[f]['y']] for f in frames])
-    
-
-    vel = np.diff(positions, axis=0)
-    
-    acc = np.diff(vel, axis=0)
-    
-    jerk = np.diff(acc, axis=0)
-    jerk_magnitude = np.linalg.norm(jerk, axis=1)
-    
-    return float(np.mean(jerk_magnitude))
-
 
 
 def detect_finger_to_nose_events(dist_dict,
@@ -211,6 +190,16 @@ def detect_finger_to_nose_events(dist_dict,
         result[i] = [int(f) for f in frames[start:end + 1]]
 
     return result
+
+
+
+def per_event_minima(events, dist_dict):
+    minima = []
+    for frames in events.values():
+        vals = [dist_dict[f] for f in frames if f in dist_dict]
+        if vals:
+            minima.append(min(vals))
+    return minima
 
 
 import matplotlib.pyplot as plt
@@ -286,10 +275,14 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
 
     # Mean distance per hand
     left_score = event_mean_distance(left_events, left_dist)
+    left_min_mean = np.mean(per_event_minima(left_events, left_dist)) 
     right_score = event_mean_distance(right_events, right_dist)
+    right_min_mean = np.mean(per_event_minima(right_events, right_dist)) 
+
 
     # Symmetry (0 = perfect, 1 = asymmetrical)
     symmetry = abs(left_score - right_score) / max(left_score, right_score) if (left_score and right_score) else np.nan
+    symmetry_min_mean = abs(left_min_mean - right_min_mean) / max(left_min_mean, right_min_mean) if (left_score and right_score) else np.nan
 
     # Tremor (per-hand)
     left_tremor, left_tremor_amp, left_tremor_freq = compute_tremor(left_tip, fps)
@@ -297,22 +290,21 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
 
     tremor_symmetry = tremor_asymmetry_orders(left_tremor, right_tremor)
     
-    left_smoothness = compute_smoothness(left_tip)
-    right_smoothness = compute_smoothness(right_tip)
 
     return {
-            "left_mean_dist": left_score,
-            "right_mean_dist": right_score,
+            #"left_mean_dist": left_score,
+            #"right_mean_dist": right_score,
+            "left_min_mean": left_min_mean,
+            "right_min_mean": right_min_mean,
             "symmetry": symmetry,
-            "left_tremor": left_tremor,
-            "right_tremor": right_tremor,
+            "symmetry_min_mean": symmetry_min_mean,
+            #"left_tremor": left_tremor,
+            #"right_tremor": right_tremor,
             "left_tremor_amplitude": left_tremor_amp,
             "right_tremor_amplitude": right_tremor_amp,
-            "left_tremor_freq": left_tremor_freq,
-            "right_tremor_freq": right_tremor_freq,
-            "tremor_symmetry": tremor_symmetry,
-            "left_smoothness": left_smoothness,
-            "right_smoothness": right_smoothness,
+            #"left_tremor_freq": left_tremor_freq,
+            #"right_tremor_freq": right_tremor_freq,
+            "tremor_symmetry": tremor_symmetry
         }
 
 
@@ -365,12 +357,12 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
                                             prominence=0.03,
                                             width_rel=0.5,
                                             smooth_win=5,
-                                            merge_gap=10)
+                                            merge_gap=6)
     right_events = detect_finger_to_nose_events(filtered_right,
                                                 prominence=0.03,
                                                 width_rel=0.5,
                                                 smooth_win=5,
-                                                merge_gap=10)
+                                                merge_gap=6)
 
     print(f"right len: {len(right_events)}, right:{right_events}")
     print(f"left len: {len(left_events)}, left:{left_events}")
@@ -409,5 +401,7 @@ def extract_finger_to_nose_biomarkers(coords, output_dir, filename, fps=60):
     print(res)
     save_biomarkers_json(res, output_dir, filename)
     return res
+
+
 
 
