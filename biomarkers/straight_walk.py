@@ -18,9 +18,11 @@ def foot_size_pixels(heel, toe):
     return np.linalg.norm(heel_np - toe_np)
 
 def detect_steps(left_toe, right_toe, smooth_window, polyorder):
-    print("222")
     distances = foot_distances(left_toe, right_toe)
+    print("222")
+
     smoothed_distances = savgol_filter(distances, smooth_window, polyorder)
+    print("444")
     peaks, _ = find_peaks(smoothed_distances, distance=10)
     print("333")
     minimums, _ = find_peaks(-smoothed_distances, distance=10)
