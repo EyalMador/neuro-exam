@@ -115,7 +115,7 @@ def step_statistics(left_heel, left_toe, right_heel, right_toe):
     std_step_length = np.std(step_lengths)
     statistics = {}
     statistics['mean'] = mean_step_length
-    statistics['std'] - std_step_length
+    statistics['std'] = std_step_length
     return statistics
 
 
