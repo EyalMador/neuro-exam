@@ -3,81 +3,7 @@ import biomarkers.helper as helper
 import landmarks.name_conventions as lnc
 import matplotlib.pyplot as plt
 from biomarkers.helper import save_biomarkers_json
-from scipy.signal import savgol_filter
-
-
-def plot_knee_angles(knee_angles):
-    """
-    Plot knee angles over time for left, right, and all knees.
-    
-    Args:
-        knee_angles: Dictionary with 'left', 'right', and 'all' keys,
-                     each containing frame:angle pairs
-    """
-    plt.figure(figsize=(12, 6))
-    
-    # Plot left knee
-    if 'left' in knee_angles and knee_angles['left']:
-        frames_left = sorted(knee_angles['left'].keys())
-        angles_left = [knee_angles['left'][f] for f in frames_left]
-        plt.plot(frames_left, angles_left, label='Left Knee', marker='o', markersize=3)
-    
-    # Plot right knee
-    if 'right' in knee_angles and knee_angles['right']:
-        frames_right = sorted(knee_angles['right'].keys())
-        angles_right = [knee_angles['right'][f] for f in frames_right]
-        plt.plot(frames_right, angles_right, label='Right Knee', marker='o', markersize=3)
-    
-    # Plot all knees (if different from left/right)
-    if 'all' in knee_angles and knee_angles['all']:
-        frames_all = sorted(knee_angles['all'].keys())
-        angles_all = [knee_angles['all'][f] for f in frames_all]
-        plt.plot(frames_all, angles_all, label='All Knees', marker='o', markersize=3, alpha=0.5)
-    
-    plt.xlabel('Frame')
-    plt.ylabel('Knee Angle (degrees)')
-    plt.title('Knee Angles Over Time')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.show()
-
-
-
-def plot_foot_distances(distances):
-    """
-    Plot the distance between left and right toe over time.
-    
-    Args:
-        distances: dict returned from foot_distances()
-                   Example: {0: 150.5, 1: 148.3, 2: 145.1, ...}
-    """
-    
-    if not distances:
-        print("No distances data")
-        return
-    
-    # Extract frames and distances
-    frames = sorted(distances.keys())
-    dist_values = [distances[f] for f in frames]
-    
-    # Create plot
-    plt.figure(figsize=(12, 5))
-    plt.plot(frames, dist_values, 'b-', linewidth=2, marker='o', markersize=3)
-    
-    plt.xlabel('Frame')
-    plt.ylabel('Distance (pixels)')
-    plt.title('Distance Between Left and Right Toe Over Time')
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.show()
-    
-    # Print statistics
-    print(f"\nFoot Distance Statistics:")
-    print(f"  Min: {min(dist_values):.2f} pixels")
-    print(f"  Max: {max(dist_values):.2f} pixels")
-    print(f"  Mean: {np.mean(dist_values):.2f} pixels")
-    print(f"  Std: {np.std(dist_values):.2f} pixels")
+from scipy.signal import savgol_filter, find_peaks
 
     
 def is_foot_flat(heel, toe, threshold = 0.5):
@@ -91,41 +17,12 @@ def foot_size_pixels(heel, toe):
     toe_np = np.array([toe['x'], toe['y']])
     return np.linalg.norm(heel_np - toe_np)
 
-def detect_steps(left_heel, left_toe, right_heel, right_toe):
-    frames = range(len(left_heel))
-    
-    steps = {
-        'left': [],
-        'right': []
-    }
-    
-    for foot, heel, toe in [('left', left_heel, left_toe), 
-                                      ('right', right_heel, right_toe)]:
-        in_step = False
-        step_start = None
-
-        for frame in frames:
-            frame_str = str(frame)
-
-            heel_coords = heel[frame_str]
-            toe_coords = toe[frame_str]
-            
-
-            foot_is_flat = is_foot_flat(heel_coords, toe_coords, 0.25)
-            
-            #step start
-            if not foot_is_flat and not in_step:
-                in_step = True
-                step_start = frame
-
-            #step end
-            elif foot_is_flat and in_step:
-                in_step = False
-                if step_start is not None:
-                    steps[foot].append((step_start, frame))
-                step_start = None
-
-    return steps
+def detect_steps(left_toe, right_toe, smooth_window, polyorder):
+    distances = foot_distances(left_toe, right_toe)
+    smoothed_distances = savgol_filter(distances, smooth_window, polyorder)
+    peaks, _ = find_peaks(smoothed_distances, distance=10)
+    minimums, _ = find_peaks(-smoothed_distances, distance=10)
+    return peaks, minimums, smoothed_distances
 
 
 def filter_realistic_strides(strides_raw):
@@ -207,77 +104,14 @@ def stride_lengths(heel, toe, steps, foot):
 
 
 def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
-    steps = detect_steps(left_heel, left_toe, right_heel, right_toe)
-    
-    # stride lengths (both raw and normalized)
-    left_strides_raw, left_strides_norm = stride_lengths(left_heel, left_toe, steps, 'left')
-    right_strides_raw, right_strides_norm = stride_lengths(right_heel, right_toe, steps, 'right')
-    
-    strides_norm = left_strides_norm + right_strides_norm
-    
-    # step times
-    step_times_data = step_times(steps, fps)
-    step_times_all = step_times_data['all']
-    
-    # empty cases
-    if not strides_norm or not step_times_all:
-        return {
-            'error': 'No steps detected',
-            'step_size': {},
-            'step_time': {}
-        }
-    
-    # Calculate regularity for normalized step sizes
-    step_size_regularity = 0
-    if len(strides_norm) > 2:
-        strides_array = np.array(strides_norm)
-        step_size_std = np.std(strides_array)
-        step_size_mean = np.mean(strides_array)
-        step_size_regularity = step_size_std / step_size_mean if step_size_mean > 0 else 999
-    
-    # Calculate regularity for step times
-    step_time_regularity = 0
-    if len(step_times_all) > 2:
-        times_array = np.array(step_times_all)
-        step_time_std = np.std(times_array)
-        step_time_mean = np.mean(times_array)
-        step_time_regularity = step_time_std / step_time_mean if step_time_mean > 0 else 999
-    
-    # Calculate left-right asymmetry in normalized step sizes
-    left_strides_array = np.array(left_strides_norm) if left_strides_norm else np.array([0])
-    right_strides_array = np.array(right_strides_norm) if right_strides_norm else np.array([0])
-    
-    left_mean = np.mean(left_strides_array) if len(left_strides_array) > 0 else 0
-    right_mean = np.mean(right_strides_array) if len(right_strides_array) > 0 else 0
-    
-    # Asymmetry index
-    step_asymmetry = 0
-    if (left_mean + right_mean) > 0:
-        step_asymmetry = abs(left_mean - right_mean) / ((left_mean + right_mean) / 2) if ((left_mean + right_mean) / 2) > 0 else 999
-    
-    return {
-        'step_size': {
-            'mean': float(np.mean(strides_norm)),
-            'median': float(np.median(strides_norm)),
-            'min': float(np.min(strides_norm)),
-            'max': float(np.max(strides_norm)),
-            'std': float(np.std(strides_norm)),
-            'count': len(strides_norm),
-            'all': strides_norm,
-            'regularity': float(step_size_regularity),
-            'asymmetry': float(step_asymmetry)
-        },
-        'step_time': {
-            'mean': float(np.mean(step_times_all)),
-            'median': float(np.median(step_times_all)),
-            'min': float(np.min(step_times_all)),
-            'max': float(np.max(step_times_all)),
-            'std': float(np.std(step_times_all)),
-            'count': len(step_times_all),
-            'all': step_times_all,
-            'regularity': float(step_time_regularity)
-        }
-    }
+    peaks, minimums, smoothed_distances = detect_steps(left_heel, left_toe, smooth_window=11, polyorder=3)
+    step_lengths = np.diff(smoothed_distances[peaks])
+    mean_step_length = np.mean(step_lengths)
+    std_step_length = np.std(step_lengths)
+    statistics = {}
+    statistics['mean'] = mean_step_length
+    statistics['std'] - std_step_length
+    return statistics
 
 
 def step_times(steps, fps):
@@ -302,7 +136,6 @@ def foot_distances(left_toe, right_toe):
         ltoe = np.array([left_toe['x'], left_toe['y']])
         rtoe = np.array([right_toe['x'], right_toe['y']])
         distances[frame] = abs(np.linalg.norm(ltoe - rtoe))
-    #plot_foot_distances(distances)
     return distances
 
 
@@ -478,15 +311,8 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     angles_max_cc, lag  = max_cc(knee_angles)
     biomarkers["max_angles_cc"] = float(angles_max_cc)
     biomarkers["steps_cc"] = float(horizontal_foot_place_max_cc(left_toe, right_toe))
-    #plot_toe_trajectories(left_toe, right_toe)
+    biomarkers["step_length"] = step_statistics(left_heel, left_toe, right_heel, right_toe)
 
-
-    # Step size biomarkers (now normalized by foot size)
-    #biomarkers["step_size"] = steps_biomarkers["step_size"]
-    #biomarkers["step_size_regularity"] = steps_biomarkers["step_size"]["regularity"]
-    #biomarkers["step_size_asymmetry"] = steps_biomarkers["step_size"].get("asymmetry", 999)
-    #biomarkers["step_time"] = steps_biomarkers["step_time"]
-    #biomarkers["step_time_regularity"] = steps_biomarkers["step_time"]["regularity"]
 
     # Knee angle biomarkers
     #biomarkers['knee_angles_left'] = knee_biomarkers['left']
