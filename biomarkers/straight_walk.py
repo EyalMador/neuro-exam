@@ -103,7 +103,7 @@ def stride_lengths(heel, toe, steps, foot):
     return filtered_raw, filtered_normalized
 
 
-def step_statistics(left_heel, left_toe, right_heel, right_toe, fps):
+def step_statistics(left_heel, left_toe, right_heel, right_toe):
     peaks, minimums, smoothed_distances = detect_steps(left_heel, left_toe, smooth_window=11, polyorder=3)
     step_lengths = np.diff(smoothed_distances[peaks])
     mean_step_length = np.mean(step_lengths)
