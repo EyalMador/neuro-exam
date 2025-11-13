@@ -304,7 +304,7 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     
 
     biomarkers = {}
-    steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
+    #steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
     knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     
