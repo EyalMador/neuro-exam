@@ -352,9 +352,9 @@ def calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, rig
     
     return knee_angles
 
-def max_knee_angles_cc(knee_angles):
-    left = np.array([v for _, v in sorted(knee_angles["left"].items())])
-    right = np.array([v for _, v in sorted(knee_angles["right"].items())])
+def max_cc(datapoints):
+    left = np.array([v for _, v in sorted(datapoints["left"].items())])
+    right = np.array([v for _, v in sorted(datapoints["right"].items())])
 
     n = min(len(left), len(right))
     left, right = left[:n], right[:n]
@@ -454,71 +454,13 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
         
     return statistics
 
+def horizontal_foot_place_max_cc(left_toe, right_toe):
+    toes = {
+        'left': left_toe,
+        'right': right_toe
+    }
+    return max_cc(toes)
 
-def plot_toe_trajectories(left_toe, right_toe):
-    """
-    Plot left and right toe trajectories in 2D (X vs Y space).
-    
-    Args:
-        left_toe: dict with frame -> {'x': x, 'y': y, 'z': z}
-        right_toe: dict with frame -> {'x': x, 'y': y, 'z': z}
-    """
-    
-    if not left_toe or not right_toe:
-        print("No toe data")
-        return
-    
-    # Extract X, Y positions for left toe
-    left_frames = sorted(left_toe.keys())
-    left_x = [left_toe[f]['x'] for f in left_frames]
-    left_y = [left_toe[f]['y'] for f in left_frames]
-    
-    # Extract X, Y positions for right toe
-    right_frames = sorted(right_toe.keys())
-    right_x = [right_toe[f]['x'] for f in right_frames]
-    right_y = [right_toe[f]['y'] for f in right_frames]
-    
-    # Create plot
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # Plot 1: Both trajectories on same plot
-    ax = axes[0]
-    ax.plot(left_x, left_y, 'b-', linewidth=2, marker='o', markersize=3, label='Left toe')
-    ax.plot(right_x, right_y, 'r-', linewidth=2, marker='s', markersize=3, label='Right toe')
-    ax.set_xlabel('X Position (pixels)')
-    ax.set_ylabel('Y Position (pixels)')
-    ax.set_title('Left vs Right Toe Trajectories')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    ax.axis('equal')  # Equal aspect ratio
-    
-    # Plot 2: Over time (frame number)
-    ax = axes[1]
-    ax.plot(left_frames, left_x, 'b-', linewidth=2, label='Left toe X', marker='o', markersize=3)
-    ax.plot(left_frames, left_y, 'b--', linewidth=2, label='Left toe Y', marker='o', markersize=3, alpha=0.7)
-    ax.plot(right_frames, right_x, 'r-', linewidth=2, label='Right toe X', marker='s', markersize=3)
-    ax.plot(right_frames, right_y, 'r--', linewidth=2, label='Right toe Y', marker='s', markersize=3, alpha=0.7)
-    ax.set_xlabel('Frame')
-    ax.set_ylabel('Position (pixels)')
-    ax.set_title('Toe Positions Over Time')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.show()
-    
-    # Print statistics
-    print(f"\nLeft Toe Statistics:")
-    print(f"  X range: {min(left_x):.2f} - {max(left_x):.2f}")
-    print(f"  Y range: {min(left_y):.2f} - {max(left_y):.2f}")
-    print(f"  X mean: {np.mean(left_x):.2f}, std: {np.std(left_x):.2f}")
-    print(f"  Y mean: {np.mean(left_y):.2f}, std: {np.std(left_y):.2f}")
-    
-    print(f"\nRight Toe Statistics:")
-    print(f"  X range: {min(right_x):.2f} - {max(right_x):.2f}")
-    print(f"  Y range: {min(right_y):.2f} - {max(right_y):.2f}")
-    print(f"  X mean: {np.mean(right_x):.2f}, std: {np.std(right_x):.2f}")
-    print(f"  Y mean: {np.mean(right_y):.2f}, std: {np.std(right_y):.2f}")
 
 def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     rtm_names_landmarks = helper.indices_to_names(landmarks, lnc.rtm_mapping())
@@ -529,8 +471,10 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
     knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
-    max_cc, lag  = max_knee_angles_cc(knee_angles)
-    biomarkers["max_cc"] = float(max_cc)
+    
+    max_cc, lag  = max_cc(knee_angles)
+    #biomarkers["max_angles_cc"] = float(max_cc)
+    biomarkers["steps_cc"] = float(horizontal_foot_place_max_cc(left_toe, right_toe))
     #plot_toe_trajectories(left_toe, right_toe)
 
 
