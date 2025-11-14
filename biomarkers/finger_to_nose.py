@@ -292,8 +292,8 @@ def compute_finger_to_nose_biomarkers(left_events, right_events,
     
 
     return {
-            #"left_mean_dist": left_score,
-            #"right_mean_dist": right_score,
+            "left_mean_dist": left_score,
+            "right_mean_dist": right_score,
             "left_min_mean": left_min_mean,
             "right_min_mean": right_min_mean,
             "symmetry": symmetry,

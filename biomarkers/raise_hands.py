@@ -288,7 +288,6 @@ def plot_wrist_time_series(frames, left_wrist, right_wrist,
     # ---- Y positions (horizontal motion) ----
     axes[1].plot(time, left_y, label="Left Wrist Y", linewidth=2)
     axes[1].plot(time, right_y, label="Right Wrist Y", linewidth=2)
-    axes[1].invert_yaxis()  # optional for normalized coordinates
     axes[1].set_ylabel("Y position")
     axes[1].set_xlabel("Time (seconds)")
     axes[1].legend()
