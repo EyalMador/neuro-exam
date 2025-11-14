@@ -138,7 +138,7 @@ def step_times(steps, fps):
 
 def foot_distances(left_toe, right_toe):
     distances = {}
-    frames = range(len(left_toe))
+    frames = sorted(left_toe.keys())
     print(f'frames = {frames}')
     for frame in frames:
         ltoe = np.array([left_toe[frame]['x'], left_toe[frame]['y']])
