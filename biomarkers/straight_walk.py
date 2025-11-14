@@ -282,7 +282,6 @@ def foot_distances(left_toe, right_toe):
         ltoe = np.array([left_toe[frame]['x'], left_toe[frame]['y']])
         rtoe = np.array([right_toe[frame]['x'], right_toe[frame]['y']])
         distances[frame] = abs(np.linalg.norm(ltoe - rtoe))
-    print('2')
 
     return distances
 
@@ -449,7 +448,7 @@ def horizontal_foot_place_max_cc(left_toe, right_toe):
 def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     rtm_names_landmarks = helper.indices_to_names(landmarks, lnc.rtm_mapping())
     [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle, head] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle", "Head"])
-
+    detect_steps(left_toe, right_toe, 11,3)
     biomarkers = {}
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     
