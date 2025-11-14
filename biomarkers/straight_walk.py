@@ -19,14 +19,13 @@ def foot_size_pixels(heel, toe):
 
 def detect_steps(left_toe, right_toe, smooth_window, polyorder):
     distances = foot_distances(left_toe, right_toe)
-    print("3")
 
     distance_values = np.array(list(distances.values()))
-    print("4")
+
     smoothed_distances = savgol_filter(distance_values, smooth_window, polyorder)
     peaks, _ = find_peaks(smoothed_distances, distance=10)
     minimums, _ = find_peaks(-smoothed_distances, distance=10)
-    print("5")
+
     return peaks, minimums, smoothed_distances
 
 
@@ -110,11 +109,9 @@ def stride_lengths(heel, toe, steps, foot):
 
 def step_statistics(left_heel, left_toe, right_heel, right_toe):
     peaks, minimums, smoothed_distances = detect_steps(left_heel, left_toe, smooth_window=11, polyorder=3)
-    print("6")
     step_lengths = np.diff(smoothed_distances[peaks])
     mean_step_length = np.mean(step_lengths)
     std_step_length = np.std(step_lengths)
-    print("7")
     statistics = {}
     statistics['mean'] = mean_step_length
     statistics['std'] = std_step_length
@@ -310,30 +307,15 @@ def horizontal_foot_place_max_cc(left_toe, right_toe):
 def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     rtm_names_landmarks = helper.indices_to_names(landmarks, lnc.rtm_mapping())
     [left_heel, right_heel, left_toe, right_toe, left_knee, right_knee, left_hip, right_hip, left_ankle, right_ankle, head] = helper.extract_traj(rtm_names_landmarks,["LHeel", "RHeel", "LBigToe", "RBigToe", "LKnee", "Rknee", "LHip", "RHip", "LAnkle", "RAnkle", "Head"])
-    
 
     biomarkers = {}
-    #steps_biomarkers = step_statistics(left_heel, left_toe, right_heel, right_toe, fps)
-    knee_biomarkers = knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     
     angles_max_cc, lag  = max_cc(knee_angles)
     biomarkers["max_angles_cc"] = float(angles_max_cc)
     biomarkers["steps_cc"] = float(horizontal_foot_place_max_cc(left_toe, right_toe))
-    biomarkers["step_length_std"] = step_statistics(left_heel, left_toe, right_heel, right_toe)["std"]
+    #biomarkers["step_length_std"] = step_statistics(left_heel, left_toe, right_heel, right_toe)
 
-
-    # Knee angle biomarkers
-    #biomarkers['knee_angles_left'] = knee_biomarkers['left']
-    #biomarkers['knee_angles_right'] = knee_biomarkers['right']
-    #biomarkers['knee_symmetry'] = knee_biomarkers['symmetry_score']
-    #biomarkers['knee_regularity_mean'] = knee_biomarkers['regularity_mean']
-    #biomarkers['knee_regularity_left'] = knee_biomarkers['left']['regularity']
-    #biomarkers['knee_regularity_right'] = knee_biomarkers['right']['regularity']
-
-    #biomarkers['knee_amplitude_asymmetry'] = knee_biomarkers['amplitude_asymmetry']
-
-    #helper.plot_biomarkers(biomarkers, "straight_walk")
     save_biomarkers_json(biomarkers, output_dir, filename)
 
     return biomarkers
