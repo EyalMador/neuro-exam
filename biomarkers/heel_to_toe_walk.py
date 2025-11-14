@@ -211,12 +211,15 @@ def extract_heel_to_toe_biomarkers(landmarks, output_dir, filename):
     htt_distances = local_minimum_distances_statistics(left_heel, right_heel, left_toe, right_toe)
     knee_biomarkers = sw.knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
 
+    knee_angles = sw.calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
+    
+    angles_max_cc, lag  = sw.max_cc(knee_angles)
+    biomarkers["max_angles_cc"] = float(angles_max_cc)
     biomarkers["htt_distances_left"] = htt_distances['left']
     biomarkers["htt_distances_right"] = htt_distances['right']
     biomarkers["htt_distances_symmetry"] = htt_distances['symmetry_score']
     biomarkers["htt_distances_regularity"] = htt_distances['regularity_mean']
-    #biomarkers["htt_distances_left_regularity"] = htt_distances['left']['regularity']
-    #biomarkers["htt_distances_right_regularity"] = htt_distances['right']['regularity']
+
     biomarkers["htt_amplitude"] = htt_distances["amplitude_consistency_mean"]
 
     biomarkers['knee_angles_left'] = knee_biomarkers['left']
