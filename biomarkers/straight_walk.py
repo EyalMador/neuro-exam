@@ -6,6 +6,147 @@ from biomarkers.helper import save_biomarkers_json
 from scipy.signal import savgol_filter, find_peaks
 
     
+def plot_knee_angles(knee_angles):
+    """
+    Plot knee angles over time for left, right, and all knees.
+    
+    Args:
+        knee_angles: Dictionary with 'left', 'right', and 'all' keys,
+                     each containing frame:angle pairs
+    """
+    plt.figure(figsize=(12, 6))
+    
+    # Plot left knee
+    if 'left' in knee_angles and knee_angles['left']:
+        frames_left = sorted(knee_angles['left'].keys())
+        angles_left = [knee_angles['left'][f] for f in frames_left]
+        plt.plot(frames_left, angles_left, label='Left Knee', marker='o', markersize=3)
+    
+    # Plot right knee
+    if 'right' in knee_angles and knee_angles['right']:
+        frames_right = sorted(knee_angles['right'].keys())
+        angles_right = [knee_angles['right'][f] for f in frames_right]
+        plt.plot(frames_right, angles_right, label='Right Knee', marker='o', markersize=3)
+    
+    # Plot all knees (if different from left/right)
+    if 'all' in knee_angles and knee_angles['all']:
+        frames_all = sorted(knee_angles['all'].keys())
+        angles_all = [knee_angles['all'][f] for f in frames_all]
+        plt.plot(frames_all, angles_all, label='All Knees', marker='o', markersize=3, alpha=0.5)
+    
+    plt.xlabel('Frame')
+    plt.ylabel('Knee Angle (degrees)')
+    plt.title('Knee Angles Over Time')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+
+
+def plot_foot_distances(distances):
+    """
+    Plot the distance between left and right toe over time.
+    
+    Args:
+        distances: dict returned from foot_distances()
+                   Example: {0: 150.5, 1: 148.3, 2: 145.1, ...}
+    """
+    
+    if not distances:
+        print("No distances data")
+        return
+    
+    # Extract frames and distances
+    frames = sorted(distances.keys())
+    dist_values = [distances[f] for f in frames]
+    
+    # Create plot
+    plt.figure(figsize=(12, 5))
+    plt.plot(frames, dist_values, 'b-', linewidth=2, marker='o', markersize=3)
+    
+    plt.xlabel('Frame')
+    plt.ylabel('Distance (pixels)')
+    plt.title('Distance Between Left and Right Toe Over Time')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+    
+    # Print statistics
+    print(f"\nFoot Distance Statistics:")
+    print(f"  Min: {min(dist_values):.2f} pixels")
+    print(f"  Max: {max(dist_values):.2f} pixels")
+    print(f"  Mean: {np.mean(dist_values):.2f} pixels")
+    print(f"  Std: {np.std(dist_values):.2f} pixels")
+
+
+def plot_toe_trajectories(left_toe, right_toe):
+    """
+    Plot left and right toe trajectories in 2D (X vs Y space).
+    
+    Args:
+        left_toe: dict with frame -> {'x': x, 'y': y, 'z': z}
+        right_toe: dict with frame -> {'x': x, 'y': y, 'z': z}
+    """
+    
+    if not left_toe or not right_toe:
+        print("No toe data")
+        return
+    
+    # Extract X, Y positions for left toe
+    left_frames = sorted(left_toe.keys())
+    left_x = [left_toe[f]['x'] for f in left_frames]
+    left_y = [left_toe[f]['y'] for f in left_frames]
+    
+    # Extract X, Y positions for right toe
+    right_frames = sorted(right_toe.keys())
+    right_x = [right_toe[f]['x'] for f in right_frames]
+    right_y = [right_toe[f]['y'] for f in right_frames]
+    
+    # Create plot
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Plot 1: Both trajectories on same plot
+    ax = axes[0]
+    ax.plot(left_x, left_y, 'b-', linewidth=2, marker='o', markersize=3, label='Left toe')
+    ax.plot(right_x, right_y, 'r-', linewidth=2, marker='s', markersize=3, label='Right toe')
+    ax.set_xlabel('X Position (pixels)')
+    ax.set_ylabel('Y Position (pixels)')
+    ax.set_title('Left vs Right Toe Trajectories')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.axis('equal')  # Equal aspect ratio
+    
+    # Plot 2: Over time (frame number)
+    ax = axes[1]
+    ax.plot(left_frames, left_x, 'b-', linewidth=2, label='Left toe X', marker='o', markersize=3)
+    ax.plot(left_frames, left_y, 'b--', linewidth=2, label='Left toe Y', marker='o', markersize=3, alpha=0.7)
+    ax.plot(right_frames, right_x, 'r-', linewidth=2, label='Right toe X', marker='s', markersize=3)
+    ax.plot(right_frames, right_y, 'r--', linewidth=2, label='Right toe Y', marker='s', markersize=3, alpha=0.7)
+    ax.set_xlabel('Frame')
+    ax.set_ylabel('Position (pixels)')
+    ax.set_title('Toe Positions Over Time')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Print statistics
+    print(f"\nLeft Toe Statistics:")
+    print(f"  X range: {min(left_x):.2f} - {max(left_x):.2f}")
+    print(f"  Y range: {min(left_y):.2f} - {max(left_y):.2f}")
+    print(f"  X mean: {np.mean(left_x):.2f}, std: {np.std(left_x):.2f}")
+    print(f"  Y mean: {np.mean(left_y):.2f}, std: {np.std(left_y):.2f}")
+    
+    print(f"\nRight Toe Statistics:")
+    print(f"  X range: {min(right_x):.2f} - {max(right_x):.2f}")
+    print(f"  Y range: {min(right_y):.2f} - {max(right_y):.2f}")
+    print(f"  X mean: {np.mean(right_x):.2f}, std: {np.std(right_x):.2f}")
+    print(f"  Y mean: {np.mean(right_y):.2f}, std: {np.std(right_y):.2f}")
+
+
+
 def is_foot_flat(heel, toe, threshold = 0.5):
 
     foot_size = foot_size_pixels(heel, toe)
@@ -314,7 +455,7 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     angles_max_cc, lag  = max_cc(knee_angles)
     biomarkers["max_angles_cc"] = float(angles_max_cc)
     biomarkers["steps_cc"] = float(horizontal_foot_place_max_cc(left_toe, right_toe))
-    #biomarkers["step_length_std"] = step_statistics(left_heel, left_toe, right_heel, right_toe)
+    #biomarkers["step_length"] = step_statistics(left_heel, left_toe, right_heel, right_toe) - taking mean and std. this biomarker is reccomended for grater dataset
 
     save_biomarkers_json(biomarkers, output_dir, filename)
 
