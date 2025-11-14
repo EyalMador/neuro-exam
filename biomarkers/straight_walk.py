@@ -139,7 +139,6 @@ def step_times(steps, fps):
 def foot_distances(left_toe, right_toe):
     distances = {}
     frames = sorted(left_toe.keys())
-    print(f'frames = {frames}')
     for frame in frames:
         ltoe = np.array([left_toe[frame]['x'], left_toe[frame]['y']])
         rtoe = np.array([right_toe[frame]['x'], right_toe[frame]['y']])
@@ -321,7 +320,7 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     angles_max_cc, lag  = max_cc(knee_angles)
     biomarkers["max_angles_cc"] = float(angles_max_cc)
     biomarkers["steps_cc"] = float(horizontal_foot_place_max_cc(left_toe, right_toe))
-    biomarkers["step_length"] = step_statistics(left_heel, left_toe, right_heel, right_toe)
+    biomarkers["step_length_std"] = step_statistics(left_heel, left_toe, right_heel, right_toe)["std"]
 
 
     # Knee angle biomarkers
