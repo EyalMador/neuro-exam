@@ -160,6 +160,7 @@ def foot_size_pixels(heel, toe):
 
 def detect_steps(left_toe, right_toe, smooth_window, polyorder):
     distances = foot_distances(left_toe, right_toe)
+    plot_foot_distances(distances)
 
     distance_values = np.array(list(distances.values()))
 
@@ -360,7 +361,7 @@ def knee_angles_statistics(left_knee, left_hip, left_ankle, right_knee, right_hi
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     
     # Plot knee angles
-    #plot_knee_angles(knee_angles)
+    plot_knee_angles(knee_angles)
     
     # Filter out unrealistic angles (< 90° or > 180° indicate errors/abnormality)
     for side in ['left', 'right', 'all']:
