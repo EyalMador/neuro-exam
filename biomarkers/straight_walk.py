@@ -312,7 +312,7 @@ def extract_straight_walk_biomarkers(landmarks, output_dir, filename, fps=30):
     knee_angles = calc_knee_angles(left_knee, left_hip, left_ankle, right_knee, right_hip, right_ankle)
     
     angles_max_cc, lag  = max_cc(knee_angles)
-    biomarkers["max_angles_cc"] = float(angles_max_cc)
+    #biomarkers["max_angles_cc"] = float(angles_max_cc)
     biomarkers["steps_cc"] = float(horizontal_foot_place_max_cc(left_toe, right_toe))
     #biomarkers["step_length"] = step_statistics(left_heel, left_toe, right_heel, right_toe)
 
